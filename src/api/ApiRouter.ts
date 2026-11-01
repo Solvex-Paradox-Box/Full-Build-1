@@ -1,3 +1,4 @@
+import { ProductionStateService } from '../production/ProductionState';
 import { DurableStore } from '../database/DurableStore';
 import { NodeRegistry } from '../nodes/NodeRegistry';
 
@@ -16,20 +17,28 @@ export class SovereignApiRouter {
       return { status: 404, data: { error: 'NOT_FOUND' } };
     }
 
+    const production = ProductionStateService.getState();
     const store = DurableStore.getInstance();
     const chain = store.verifyChain();
     const nodeCount = NodeRegistry.getInstance().getAllNodes().length;
-    const health = chain.valid && nodeCount > 0;
+    const baseHealthy = chain.valid && nodeCount > 0;
+    const healthy = baseHealthy && production.readiness === 'READY';
+
     const data = {
-      status: health ? 'healthy' : 'degraded',
+      status: healthy ? 'healthy' : 'blocked',
       registered_nodes: nodeCount,
       chain_valid: chain.valid,
       audit_records: store.getState().audit_chain.length,
-      authentication_enabled: false,
-      payments_enabled: false,
-      readiness: 'BLOCKED',
-      reason: 'Production OIDC, signed tenant isolation, and required readiness gates have not been verified.'
+      authentication_enabled: production.authentication_enabled,
+      payments_enabled: production.payments_enabled,
+      readiness: production.readiness,
+      environment: production.environment,
+      blockers: production.blockers,
+      reason: healthy
+        ? 'Runtime and production gates are satisfied.'
+        : 'Production OIDC, signed tenant isolation, and required readiness gates have not been verified.'
     };
-    return { status: health ? 200 : 503, data };
+
+    return { status: healthy ? 200 : 503, data };
   }
 }
