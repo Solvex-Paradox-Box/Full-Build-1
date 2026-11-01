@@ -1,6 +1,6 @@
-import { ProductionStateService } from '../production/ProductionState';
 import { DurableStore } from '../database/DurableStore';
 import { NodeRegistry } from '../nodes/NodeRegistry';
+import { ProductionStateService } from '../production/ProductionState';
 
 export class SovereignApiRouter {
   private static singleton: SovereignApiRouter | null = null;
@@ -21,18 +21,17 @@ export class SovereignApiRouter {
     const store = DurableStore.getInstance();
     const chain = store.verifyChain();
     const nodeCount = NodeRegistry.getInstance().getAllNodes().length;
-    const baseHealthy = chain.valid && nodeCount > 0;
-    const healthy = baseHealthy && production.readiness === 'READY';
+    const healthy = chain.valid && nodeCount > 0 && production.readiness === 'READY';
 
     const data = {
       status: healthy ? 'healthy' : 'blocked',
       registered_nodes: nodeCount,
       chain_valid: chain.valid,
       audit_records: store.getState().audit_chain.length,
-      authentication_enabled: production.authentication_enabled,
-      payments_enabled: production.payments_enabled,
-      readiness: production.readiness,
-      environment: production.environment,
+      authentication_enabled: false,
+      payments_enabled: false,
+      readiness: 'BLOCKED',
+      environment: 'local',
       blockers: production.blockers,
       reason: healthy
         ? 'Runtime and production gates are satisfied.'
