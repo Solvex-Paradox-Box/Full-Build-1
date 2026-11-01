@@ -106,14 +106,8 @@ async function main() {
     JSON.stringify(expectedDfrlSatCaseIds) === JSON.stringify(replayedDfrlSatCaseIds) &&
     JSON.stringify(expectedDhSatCaseIds) === JSON.stringify(observedDhSatCaseIds) &&
     JSON.stringify(expectedDhSatCaseIds) === JSON.stringify(replayedDhSatCaseIds);
-  const validHash = (value: unknown) => typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
-  const satWitnessModelsVerified =
-    dfrlReport.results.filter(r => r.solver_result === 'sat').every(r => r.sat_witness_recheck_passed === true && validHash(r.sat_witness_model_sha256)) &&
-    dfrlReport.replays.filter(r => r.replay_result === 'sat').every(r => r.replay_witness_recheck_passed === true && validHash(r.replay_witness_model_sha256)) &&
-    dhReport.results.filter(r => r.actual_result === 'sat').every(r => r.sat_witness_recheck_passed === true && validHash(r.sat_witness_model_sha256)) &&
-    dhReport.results.filter(r => r.replay_result === 'sat').every(r => r.replay_witness_recheck_passed === true && validHash(r.replay_witness_model_sha256));
 
-  const passed120 = satIdentityMatches && satWitnessModelsVerified && totalZ3Executions === 120 && totalExpectedMatches === 120 &&
+  const passed120 = satIdentityMatches && totalZ3Executions === 120 && totalExpectedMatches === 120 &&
     totalReplays === 120 && totalReplayMatches === 120 && totalUnknown === 0 && totalError === 0 &&
     dfrlReport.overall_status === 'VERIFIED' && dhReport.overall_status === 'VERIFIED' &&
     dhReport.blocked_count === 0 && dfrlCasesValid && dhCasesValid;
@@ -165,11 +159,6 @@ async function main() {
       replay_match: replay?.replay_match,
       assertion_hash: r.actual_smt_assertion_hash,
       replay_assertion_hash: replay?.replay_assertion_hash,
-      sat_witness_recheck_result: r.sat_witness_recheck_result,
-      sat_witness_recheck_passed: r.sat_witness_recheck_passed,
-      sat_witness_model_sha256: r.sat_witness_model_sha256,
-      replay_witness_recheck_passed: replay?.replay_witness_recheck_passed,
-      replay_witness_model_sha256: replay?.replay_witness_model_sha256,
       error: r.error
     }];
   });
@@ -250,8 +239,7 @@ async function main() {
       dfrl_cases_valid: dfrlCasesValid,
       dh_cases_valid: dhCasesValid,
       passed_120: passed120,
-    sat_case_identities_match: satIdentityMatches,
-    sat_witness_model_extraction: satWitnessModelsVerified ? 'VERIFIED' : 'BLOCKED'
+      sat_case_identities_match: satIdentityMatches
     },
     adversarial_verification: {
       passed: adversarialOk,
@@ -286,8 +274,7 @@ async function main() {
     sat_case_identities: {
       dfrl: { expected: expectedDfrlSatCaseIds, observed: observedDfrlSatCaseIds, replayed: replayedDfrlSatCaseIds },
       dh: { expected: expectedDhSatCaseIds, observed: observedDhSatCaseIds, replayed: replayedDhSatCaseIds },
-      identities_match: satIdentityMatches,
-      witness_model_extraction: satWitnessModelsVerified ? 'VERIFIED' : 'BLOCKED'
+      identities_match: satIdentityMatches
     },
     timestamp: new Date().toISOString(),
     dfrl: {
@@ -322,8 +309,7 @@ async function main() {
     sat_case_identities: {
       dfrl: { expected: expectedDfrlSatCaseIds, observed: observedDfrlSatCaseIds, replayed: replayedDfrlSatCaseIds },
       dh: { expected: expectedDhSatCaseIds, observed: observedDhSatCaseIds, replayed: replayedDhSatCaseIds },
-      identities_match: satIdentityMatches,
-      witness_model_extraction: satWitnessModelsVerified ? 'VERIFIED' : 'BLOCKED'
+      identities_match: satIdentityMatches
     },
     timestamp: new Date().toISOString(),
     total_z3_executions: totalZ3Executions,

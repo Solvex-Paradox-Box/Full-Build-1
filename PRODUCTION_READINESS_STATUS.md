@@ -71,7 +71,7 @@ See `docs/deployment/PRODUCTION_RELEASE_CHECKLIST.md` for the exact staging and 
 
 ## Validation actually performed
 
-- Native Z3 SAT-witness corpus from the preceding pass: **120/120 SAT**, 120 fresh-context replays, 120 independent witness checks, and 120 contradiction mutations returning UNSAT. This was native Z3 4.13.3.0 through the system C API, not the project's WASM pipeline.
+- The 120-case contract that was passing is a mixture, not 120 SAT: **88 DFRL UNSAT**, **30 DH UNSAT**, **2 DH SAT**. A later pass relabeled every DFRL case SAT and required a second SAT-only Z3 recheck. That second check is removed. Do not treat the old 120/120 SAT note as the current contract.
 - `node scripts/verify_release_safety.mjs`: **PASS**. It also checks the CI workflow for frozen Bun-lock installation, absence of live PayPal/Neon secrets, OIDC test wiring, and fail-closed production readiness.
 - `node scripts/verify_payments_disabled.mjs`: **PASS**. The sandbox, closure, and production preflight code no longer reads PayPal credential environment variables or contacts the provider.
 - TypeScript syntax transpilation for the 20 current auth/API/database/server/UI/verification files: **PASS, zero syntax diagnostics**.

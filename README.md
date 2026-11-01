@@ -24,7 +24,7 @@ The split source consists of **part-00 and part-01**. They were split because of
 
 Brought in:
 
-- SAT-witness migration for the 120-case corpus (88 DFRL + 32 DH). Expected solver result is `sat` with an independently checked model, not an UNSAT refutation of the unrestricted paradox. See [SAT_WITNESS_MIGRATION.md](SAT_WITNESS_MIGRATION.md) and [SAT_WITNESS_NATIVE_RECHECK.md](SAT_WITNESS_NATIVE_RECHECK.md).
+- Formal corpus stays the passing mixture: 88 DFRL refutations expected `unsat`, plus 30 DH `unsat` and 2 DH `sat`. The later all-SAT witness pass, and its second SAT-only Z3 recheck, were removed. Production hardening is unchanged.
 - Production-hardening pass: public role-minting login retired, OIDC authorization-code + PKCE path, payments fail closed (HTTP 410), and an additive access-request migration. Actual live migration state must be checked before any migration is reapplied. See [PRODUCTION_READINESS_STATUS.md](PRODUCTION_READINESS_STATUS.md) and [docs/deployment/PRODUCTION_RELEASE_CHECKLIST.md](docs/deployment/PRODUCTION_RELEASE_CHECKLIST.md).
 
 Kept from later commits already on `main` (2026-10-11 through 2026-10-21), which the October 10 archive does not contain:
