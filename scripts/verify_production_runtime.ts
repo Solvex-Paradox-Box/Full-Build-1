@@ -1,22 +1,24 @@
 import fs from 'fs';
 import path from 'path';
 import { NeonStore } from '../src/database/NeonPersistence';
+import { ProductionStateService } from '../src/production/ProductionState';
 
 async function main() {
   const artifactsDir = path.resolve('artifacts');
   fs.mkdirSync(artifactsDir, { recursive: true });
 
-  const env = (process.env.SOLVEX_ENV || '').toLowerCase();
-  const paymentsEnabled = (process.env.PAYMENTS_ENABLED || '').toLowerCase() === 'true';
+  const state = ProductionStateService.getState();
   const neon = NeonStore.getInstance();
-  const issues: string[] = [];
+  const issues: string[] = [...state.blockers];
 
   const report: any = {
     test_suite: 'PRODUCTION_RUNTIME_WIRING_VERIFICATION',
     timestamp: new Date().toISOString(),
-    environment: env,
-    payments_enabled: paymentsEnabled,
-    payment_provider_check: paymentsEnabled ? 'REQUIRED' : 'SKIPPED_PAYMENTS_DISABLED',
+    environment: state.environment,
+    readiness: state.readiness,
+    authentication_enabled: state.authentication_enabled,
+    payments_enabled: state.payments_enabled,
+    payment_provider_check: state.payments_enabled ? 'REQUIRED' : 'SKIPPED_PAYMENTS_DISABLED',
     neon_configured: neon.isConfigured(),
     neon_connected: false,
     neon_migrations_applied: false,
@@ -27,15 +29,17 @@ async function main() {
     blockers: issues
   };
 
-  if (env !== 'production') issues.push('SOLVEX_ENV must be production.');
-  if (!neon.isConfigured()) issues.push('NEON_DATABASE_URL is missing from the runtime environment.');
+  if (state.readiness === 'BLOCKED') {
+    report.production_gate_blocked = true;
+  }
 
-  if (issues.length === 0) {
+  if (!neon.isConfigured()) {
+    issues.push('NEON_DATABASE_URL is missing from the runtime environment.');
+  } else {
     report.neon_connected = await neon.connect();
     if (!report.neon_connected) {
       issues.push('Neon PostgreSQL connection failed closed.');
     } else {
-      // This verifier is intentionally read-only. Never run schema migrations from a CI readiness check.
       report.neon_tables = await neon.verifyRequiredTables();
       if (report.neon_tables.verified !== report.neon_tables.required) {
         issues.push('Neon required-table verification failed: ' + report.neon_tables.missing.join(', '));
@@ -48,7 +52,7 @@ async function main() {
     }
   }
 
-  if (paymentsEnabled) {
+  if (state.payments_enabled) {
     const { PayPalAdapter } = await import('../src/payments/PayPalAdapter');
     const paypal = PayPalAdapter.getInstance();
     const paypalEnv = paypal.getActiveEnvironment();
@@ -75,10 +79,10 @@ async function main() {
     report.paypal_live_authentication = { skipped: true, reason: 'PAYMENTS_ENABLED is not true; payment collection must remain disabled.' };
   }
 
-  report.blockers = [...issues];
+  report.blockers = [...new Set(issues)];
   fs.writeFileSync(path.join(artifactsDir, 'production-runtime-verification.json'), JSON.stringify(report, null, 2), 'utf8');
   console.log(JSON.stringify(report, null, 2));
-  if (issues.length > 0) throw new Error(issues.join(' '));
+  if (report.blockers.length > 0) throw new Error(report.blockers.join(' '));
 }
 
 main().catch((err) => {
