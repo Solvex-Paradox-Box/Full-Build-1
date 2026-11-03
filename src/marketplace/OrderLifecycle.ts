@@ -56,21 +56,42 @@ export class OrderLifecycleManager {
       };
     }
 
-    this.sqlite.updateTenantRecord('orders', order.tenant_id, orderId, {
-      status: targetState,
-      evidence_reference: evidencePayload ? JSON.stringify(evidencePayload) : null
-    });
+    if (!this.sqlite.isDiskBacked()) {
+      return { success: false, error: 'BLOCKED: order transitions require disk-backed SQLite transactions.' };
+    }
 
-    const updated = { ...order, status: targetState };
-    this.durableStore.appendAudit(
-      order.tenant_id,
-      user?.email || 'SYSTEM_LIFECYCLE',
-      'ORDER_TRANSITION',
-      'ORDER',
-      orderId,
-      { from: currentStatus, to: targetState, evidence: evidencePayload }
-    );
+    const auditLengthBefore = this.durableStore.getState().audit_chain.length;
+    try {
+      rawDb.exec('BEGIN IMMEDIATE;');
+      const changed = this.sqlite.updateTenantRecord('orders', order.tenant_id, orderId, {
+        status: targetState,
+        evidence_reference: evidencePayload ? JSON.stringify(evidencePayload) : null
+      });
+      if (changed !== 1) throw new Error('Order row update did not affect exactly one tenant-scoped record.');
 
-    return { success: true, order: updated };
+      const persisted = this.sqlite.findTenantRecordById<any>('orders', order.tenant_id, orderId);
+      if (!persisted || persisted.status !== targetState) {
+        throw new Error('Order transition read-back did not match the requested target state.');
+      }
+
+      this.durableStore.appendAudit(
+        order.tenant_id,
+        user?.email || 'SYSTEM_LIFECYCLE',
+        'ORDER_TRANSITION',
+        'ORDER',
+        orderId,
+        { from: currentStatus, to: targetState, evidence: evidencePayload }
+      );
+      rawDb.exec('COMMIT;');
+      return { success: true, order: { ...order, status: targetState } };
+    } catch (error) {
+      try { rawDb.exec('ROLLBACK;'); } catch {}
+      const chain = this.durableStore.getState().audit_chain;
+      if (chain.length > auditLengthBefore) chain.splice(auditLengthBefore);
+      return {
+        success: false,
+        error: `Order transition failed closed: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
   }
 }
