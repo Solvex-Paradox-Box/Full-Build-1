@@ -207,6 +207,18 @@ export class SqliteStore {
     this.insertRecord(tableName, { ...data, tenant_id: tenantId });
   }
 
+  public deleteRecordById(tableName: string, id: string): number {
+    const table = this.assertTableName(tableName);
+    if (this.diskBacked) {
+      return this.db.run(`DELETE FROM ${table} WHERE id = ?`, [id]).changes;
+    }
+    const rows = this.tables.get(table) || [];
+    const index = rows.findIndex(row => row.id === id);
+    if (index < 0) return 0;
+    rows.splice(index, 1);
+    return 1;
+  }
+
   public deleteTenantRecord(tableName: string, tenantId: string, id: string): number {
     const table = this.assertTableName(tableName);
     if (this.diskBacked) {
