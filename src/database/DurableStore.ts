@@ -188,6 +188,35 @@ export class DurableStore {
       };
     }
     if (chk.snapshot_state) {
+      const snapshot = chk.snapshot_state as any;
+      const foreignProblem = (records: Record<string, any>) =>
+        Object.values(records || {}).some(record => record.tenant_id !== chk.tenant_id);
+      const foreignOffer = (records: Record<string, any>) =>
+        Object.values(records || {}).some(record => record.tenant_id !== chk.tenant_id);
+      const foreignTenant = (records: Record<string, any>) =>
+        Object.keys(records || {}).some(tenantId => tenantId !== chk.tenant_id);
+      const unscopedSolution = (records: Record<string, any>) =>
+        Object.values(records || {}).some(solution => {
+          if (solution.tenant_id) return solution.tenant_id !== chk.tenant_id;
+          if (!solution.problem_ref) return true;
+          const problem = this.state.problems[solution.problem_ref] || snapshot.problems?.[solution.problem_ref];
+          return !problem || problem.tenant_id !== chk.tenant_id;
+        });
+      if (
+        foreignProblem(this.state.problems) ||
+        foreignProblem(snapshot.problems) ||
+        foreignOffer(this.state.offers) ||
+        foreignOffer(snapshot.offers) ||
+        foreignTenant(this.state.tenants) ||
+        foreignTenant(snapshot.tenants) ||
+        unscopedSolution(this.state.solutions) ||
+        unscopedSolution(snapshot.solutions)
+      ) {
+        return {
+          success: false,
+          error: 'BLOCKED: checkpoint snapshot is global or contains unscoped records; cross-tenant rollback is not permitted.'
+        };
+      }
       const previous = {
         problems: this.state.problems,
         solutions: this.state.solutions,
