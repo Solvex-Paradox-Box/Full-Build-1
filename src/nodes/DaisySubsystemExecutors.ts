@@ -565,17 +565,32 @@ export class DaisySubsystemExecutors {
 
       // 27. DN-27: Halting Problem Boundary Sentinel
       case 'DN-27': {
-        // Enforce Rice-Turing boundary: bounded loop analysis via NOPOT ranking function
-        const cert = NOPOTVerifier.verifyAlgorithmTermination('BoundedDecr', (x) => x - 1, 10, 20);
+        // A bounded decrement example is not a solution to the general
+        // Halting Problem. Pair its measured run with the matching Z3 theorem.
+        const { certificate, z3Result } =
+          await NOPOTVerifier.verifyWithZ3Solver('BoundedNaturalNumberDecrement', 10);
+        const verified = certificate.termination_proved &&
+          certificate.actual_measured_steps === 10 &&
+          certificate.strictly_decreasing &&
+          z3Result.solver_result === 'unsat' &&
+          z3Result.proved &&
+          z3Result.theorem_id === 'THM-INDUCTIVE-TERMINATION-05';
         return {
           node_id: 'DN-27',
           name: 'Halting Problem Boundary Sentinel',
           category: 'LOGIC_SOLVER',
           executed: true,
           claim_scope: 'MODEL',
-          status: cert.termination_proved ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: verified ? 'SUCCESS' : 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { termination_proved: cert.termination_proved }
+          evidence: {
+            general_halting_problem_solved: false,
+            bounded_decrement_measured_steps: certificate.actual_measured_steps,
+            ranking_strictly_decreased: certificate.strictly_decreasing,
+            theorem_id: z3Result.theorem_id,
+            z3_result: z3Result.solver_result,
+            proof_scope: 'BOUNDED_NATURAL_NUMBER_DECREMENT_ONLY'
+          }
         };
       }
 
@@ -706,19 +721,21 @@ export class DaisySubsystemExecutors {
       case 'DN-34': {
         const neon = NeonStore.getInstance();
         const status = neon.getStatus();
-        const testConn = await neon.connect();
-        const success = status.configured ? testConn : true; // fail-closed cleanly handled
+        // Node coverage is offline by design. Credentials may be inventoried,
+        // but this handler never opens an external provider connection.
         return {
           node_id: 'DN-34',
           name: 'Neon Postgres Adapter',
           category: 'ADAPTERS',
           executed: true,
-          claim_scope: status.configured ? 'PRODUCTION' : 'LOCAL',
-          status: status.configured ? (testConn ? 'SUCCESS' : 'FAIL_CLOSED') : 'PROVIDER_REQUIRED',
+          claim_scope: 'LOCAL',
+          status: 'PROVIDER_REQUIRED',
           duration_ms: performance.now() - start,
           evidence: {
             configured: status.configured,
             backend: status.backend,
+            connection_attempted: false,
+            external_io_disabled_for_node_coverage: true,
             fallback_active: !status.configured,
             tables_verified: status.tables_verified
           }
@@ -730,24 +747,24 @@ export class DaisySubsystemExecutors {
         const pp = PayPalAdapter.getInstance();
         const creds = pp.getEffectiveCredentials();
         const info = pp.getMaskedCredentialsInfo();
-        let authTest: any = { valid: false };
-        if (creds) {
-          authTest = await pp.testLiveCredentials(creds.clientId, creds.clientSecret, creds.environment);
-        }
-        const isAuth = Boolean(authTest.valid || authTest.authenticated);
+        // Payment-provider authentication and capture are never invoked by
+        // subsystem coverage. A configured credential is not authorization.
         return {
           node_id: 'DN-35',
           name: 'PayPal Enterprise Payment Gateway',
           category: 'PAYMENTS',
           executed: true,
-          claim_scope: creds ? (creds.environment === 'live' ? 'PRODUCTION' : 'SANDBOX') : 'LOCAL',
-          status: creds ? (isAuth ? 'SUCCESS' : 'FAIL_CLOSED') : 'PROVIDER_REQUIRED',
+          claim_scope: 'LOCAL',
+          status: 'PROVIDER_REQUIRED',
           duration_ms: performance.now() - start,
           evidence: {
             configured: pp.hasActiveCredentials(),
             environment: info.environment,
             client_id_prefix: info.masked_client_id,
-            authenticated: isAuth,
+            provider_authentication_attempted: false,
+            payment_capture_attempted: false,
+            external_io_disabled_for_node_coverage: true,
+            credentials_are_not_authorization: Boolean(creds),
             fail_closed_enforced: true
           }
         };
