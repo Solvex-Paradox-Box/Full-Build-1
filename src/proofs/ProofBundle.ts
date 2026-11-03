@@ -149,6 +149,7 @@ export class ProofBundleBuilder {
     );
     this.bundle.limitations.push('VERIFIED sealing is disabled until the proof schema supports cryptographically verifiable independent attestations.');
     this.bundle.limitations.push('Environment and dependency hash fields are static markers; no measured runtime or dependency-manifest fingerprint is captured.');
+    this.bundle.limitations.push('The verifier_identity field is a local label, not a cryptographically attested signer identity.');
     return this.bundle;
   }
 }
