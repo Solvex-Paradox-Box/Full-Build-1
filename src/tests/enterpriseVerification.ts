@@ -514,6 +514,37 @@ export async function runEnterpriseVerification() {
     }
   });
 
+  // 31. DurableStore hydrates persisted records through the configured SQLite adapter.
+  runTest('DurableStore SQLite Hydration and Persistence Mode Disclosure', () => {
+    const id = `durable_hydration_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const store = DurableStore.getInstance();
+    store.getState().problems[id] = {
+      id,
+      tenant_id: 'TENANT_DURABLE_TEST',
+      raw_problem: 'DurableStore hydration verification',
+      normalized_title: 'Hydration verification',
+      domain: 'TEST',
+      detected_constraints: [],
+      invariants: ['boundary at zero'],
+      status: 'INTAKE',
+      created_at: Date.now()
+    };
+    store.persist();
+    (DurableStore as any).instance = null;
+    const reloaded = DurableStore.getInstance();
+    const record = reloaded.getState().problems[id];
+    if (!record || record.raw_problem !== 'DurableStore hydration verification') {
+      throw new Error('DurableStore did not hydrate the persisted problem record from its backing adapter');
+    }
+    const mode = reloaded.getPersistenceMode();
+    if (!['SQLITE_DISK', 'BROWSER_LOCAL_STORAGE', 'PROCESS_MEMORY_ONLY'].includes(mode)) {
+      throw new Error(`Unexpected persistence mode: ${mode}`);
+    }
+    delete reloaded.getState().problems[id];
+    SqliteStore.getInstance().deleteRecordById('problems', id);
+    reloaded.persist();
+  });
+
   // Execute all queued tests sequentially
   for (const testFn of testQueue) {
     await testFn();
