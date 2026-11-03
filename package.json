@@ -29,7 +29,8 @@
     "verify:release-safety": "node scripts/verify_release_safety.mjs",
     "verify:payments-disabled": "node scripts/verify_payments_disabled.mjs",
     "verify:daisy-safety": "node scripts/verify_daisy_foundational_safety.mjs",
-    "verify:daisy-54-structure": "node scripts/verify_daisy54_structure.mjs"
+    "verify:daisy-54-structure": "node scripts/verify_daisy54_structure.mjs",
+    "verify:daisy-54-runtime": "tsx scripts/run_daisy54_runtime.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
