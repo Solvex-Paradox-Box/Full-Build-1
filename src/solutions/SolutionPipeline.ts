@@ -147,7 +147,7 @@ export class SolutionPipeline {
       record(3, 'BLOCKED', start, { problem_id: problem.id }, 'The persisted problem has no explicit invariants.');
       return finish(`BLOCKED at stage 3: Problem [${problem.id}] has no explicit invariants.`);
     }
-    record(3, 'PASSED', start, { invariant_count: invariants.length, invariants_sha256: this.sha256(JSON.stringify(invariants)) });
+    record(3, 'PASSED', start, { invariant_count: invariants.length, invariants_sha256: this.sha256(JSON.stringify(invariants)), invariants_semantically_verified: false, validation_level: 'PERSISTED_SPECIFICATION_PRESENCE_ONLY' });
 
     // Stage 4 — inspect actual AST call sites for direct self-recursion.
     start = started();
