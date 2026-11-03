@@ -1,0 +1,26 @@
+name: Daisy 54-node structural verification
+
+on:
+  push:
+    branches:
+      - test/daisy-54-node-verification-20261103
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-daisy-54-structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout verification branch
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify canonical 54-node registry and executor mapping
+        run: bun run verify:daisy-54-structure
