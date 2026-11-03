@@ -187,10 +187,21 @@ export class DurableStore {
       };
     }
     if (chk.snapshot_state) {
+      const previous = {
+        problems: this.state.problems,
+        solutions: this.state.solutions,
+        offers: this.state.offers,
+        tenants: this.state.tenants
+      };
       this.state.problems = JSON.parse(JSON.stringify(chk.snapshot_state.problems || {}));
       this.state.solutions = JSON.parse(JSON.stringify(chk.snapshot_state.solutions || {}));
       this.state.offers = JSON.parse(JSON.stringify(chk.snapshot_state.offers || {}));
       this.state.tenants = JSON.parse(JSON.stringify(chk.snapshot_state.tenants || {}));
+      const sqlite = SqliteStore.getInstance();
+      this.deleteRemovedRows('problems', previous.problems, this.state.problems);
+      this.deleteRemovedRows('solutions', previous.solutions, this.state.solutions);
+      this.deleteRemovedRows('offers', previous.offers, this.state.offers);
+      this.deleteRemovedRows('tenants', previous.tenants, this.state.tenants);
       this.persist();
       return { success: true };
     }
@@ -198,24 +209,76 @@ export class DurableStore {
   }
 
   private load(): void {
+    // Browser storage remains a fallback. In Node, SQLite is the authoritative
+    // persistence source whenever the native disk-backed adapter is available.
     if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        const raw = window.localStorage.getItem(this.STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed) {
-            this.state = { ...this.state, ...parsed };
-          }
-        }
-      } catch {}
+      const raw = window.localStorage.getItem(this.STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') this.state = { ...this.state, ...parsed };
+      }
+    }
+
+    const sqlite = SqliteStore.getInstance();
+    const hydrateMap = <T>(table: string): Record<string, T> => {
+      const rows = sqlite.findAllRecords<Record<string, any>>(table);
+      return Object.fromEntries(rows.map(row => [String(row.id), row as T]));
+    };
+    const tenants = hydrateMap<TenantEntity>('tenants');
+    const problems = hydrateMap<ProblemEntity>('problems');
+    const solutions = hydrateMap<SolutionEntity>('solutions');
+    const offers = hydrateMap<OfferEntity>('offers');
+    const proofBundles = hydrateMap<ProofBundleEntity>('proof_bundles');
+    const checkpoints = hydrateMap<CheckpointEntity>('checkpoints');
+    const auditRows = sqlite.findAllRecords<AuditRecordEntity>('audit_records')
+      .sort((a, b) => a.index_num - b.index_num);
+
+    if (Object.keys(tenants).length) this.state.tenants = tenants;
+    if (Object.keys(problems).length) this.state.problems = problems;
+    if (Object.keys(solutions).length) this.state.solutions = solutions;
+    if (Object.keys(offers).length) this.state.offers = offers;
+    if (Object.keys(proofBundles).length) this.state.proof_bundles = proofBundles;
+    if (Object.keys(checkpoints).length) this.state.checkpoints = checkpoints;
+    if (auditRows.length) this.state.audit_chain = auditRows;
+  }
+
+  private persistMap<T extends Record<string, any>>(table: string, records: Record<string, T>): void {
+    const sqlite = SqliteStore.getInstance();
+    for (const [key, value] of Object.entries(records)) {
+      const id = String(value.id || (value as any).offer_id || key);
+      sqlite.insertRecord(table, { ...value, id });
+    }
+  }
+
+  private deleteRemovedRows<T extends Record<string, any>>(
+    table: string,
+    previous: Record<string, T>,
+    restored: Record<string, T>
+  ): void {
+    const sqlite = SqliteStore.getInstance();
+    for (const [key, value] of Object.entries(previous)) {
+      if (!Object.prototype.hasOwnProperty.call(restored, key)) {
+        sqlite.deleteRecordById(table, String(value.id || (value as any).offer_id || key));
+      }
     }
   }
 
   public persist(): void {
+    // Persist canonical entities and the hash-linked audit records to SQLite.
+    // isDiskBacked() must be checked by callers before making a disk-durability
+    // claim; the fallback adapter is intentionally only process-local memory.
+    this.persistMap('tenants', this.state.tenants);
+    this.persistMap('problems', this.state.problems);
+    this.persistMap('solutions', this.state.solutions);
+    this.persistMap('offers', this.state.offers);
+    this.persistMap('proof_bundles', this.state.proof_bundles);
+    this.persistMap('checkpoints', this.state.checkpoints);
+    for (const record of this.state.audit_chain) {
+      SqliteStore.getInstance().insertTenantRecord('audit_records', record.tenant_id, record);
+    }
+
     if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        window.localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
-      } catch {}
+      window.localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
     }
   }
 }
