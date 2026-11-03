@@ -707,15 +707,31 @@ export class DaisySubsystemExecutors {
 
       // 32. DN-32: Durable JSON WAL Sync Engine
       case 'DN-32': {
+        const sqlite = SqliteStore.getInstance();
+        const raw = sqlite.getRawDb();
+        const journalMode = String(raw.get('PRAGMA journal_mode')?.journal_mode ?? 'unknown').toLowerCase();
+        const synchronous = Number(raw.get('PRAGMA synchronous')?.synchronous ?? -1);
+        const foreignKeys = Number(raw.get('PRAGMA foreign_keys')?.foreign_keys ?? 0);
+        const walSyncVerified = sqlite.isDiskBacked() &&
+          journalMode === 'wal' &&
+          synchronous === 2 &&
+          foreignKeys === 1;
         return {
           node_id: 'DN-32',
-          name: 'Durable JSON WAL Sync Engine',
+          name: 'SQLite WAL and Full-Synchronous Durability Guard',
           category: 'PERSISTENCE',
           executed: true,
           claim_scope: 'LOCAL',
-          status: 'FAIL_CLOSED',
+          status: walSyncVerified ? 'SUCCESS' : 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { durable_wal_sync_verified: false, reason: 'The current server-side DurableStore has no disk WAL or fsync implementation.' }
+          evidence: {
+            disk_backed: sqlite.isDiskBacked(),
+            journal_mode: journalMode,
+            synchronous_pragma: synchronous,
+            foreign_keys_pragma: foreignKeys,
+            wal_sync_verified: walSyncVerified,
+            fsync_guarantee_scope: 'SQLite synchronous FULL commit behavior; not a claim about physical device firmware or power-loss testing'
+          }
         };
       }
 
