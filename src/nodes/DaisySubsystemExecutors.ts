@@ -240,7 +240,7 @@ export class DaisySubsystemExecutors {
       case 'DN-09': {
         const rev = ReversibilityEngine.getInstance();
         const chk = rev.createCheckpoint('TENANT_ROOT', 'ROLLBACK_TEST', 'ATOMIC_DATABASE_RESTORE');
-        const roll = rev.executeRollback(chk.id, 'CUJ Governor test');
+        const roll = rev.executeRollback(chk.id, 'CUJ Governor test', 'TENANT_ROOT');
         return {
           node_id: 'DN-09',
           name: 'Reversibility & Rollback Governor',
@@ -257,7 +257,7 @@ export class DaisySubsystemExecutors {
       case 'DN-10': {
         const rev = ReversibilityEngine.getInstance();
         const chk = rev.createCheckpoint('TENANT_ROOT', 'IRREV_TEST', 'IRREVERSIBLE_EXTERNAL_ACTION');
-        const roll = rev.executeRollback(chk.id, 'Illegal rollback test');
+        const roll = rev.executeRollback(chk.id, 'Illegal rollback test', 'TENANT_ROOT');
         const blocked = !roll.success && (roll.error?.includes('IRREVERSIBLE_EXTERNAL_ACTION') ?? false);
         return {
           node_id: 'DN-10',
