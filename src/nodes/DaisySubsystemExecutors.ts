@@ -328,15 +328,48 @@ export class DaisySubsystemExecutors {
 
       // 15. DN-15: Multi-Tenant Partition Manager
       case 'DN-15': {
+        // Prove row-level tenant filtering through the actual storage adapter.
+        // This does not claim cryptographic key isolation.
+        const store = SqliteStore.getInstance();
+        const suffix = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const tenantA = `DN15_A_${suffix}`;
+        const tenantB = `DN15_B_${suffix}`;
+        const idA = `DN15_ROW_A_${suffix}`;
+        const idB = `DN15_ROW_B_${suffix}`;
+        let isolated = false;
+        let cleanupComplete = false;
+        try {
+          store.insertTenantRecord('problems', tenantA, { id: idA, marker: 'A' });
+          store.insertTenantRecord('problems', tenantB, { id: idB, marker: 'B' });
+          const rowsA = store.findTenantRecords<any>('problems', tenantA, 100);
+          const rowsB = store.findTenantRecords<any>('problems', tenantB, 100);
+          isolated =
+            rowsA.some(row => row.id === idA) &&
+            !rowsA.some(row => row.id === idB || row.tenant_id === tenantB) &&
+            rowsB.some(row => row.id === idB) &&
+            !rowsB.some(row => row.id === idA || row.tenant_id === tenantA);
+        } finally {
+          store.deleteTenantRecord('problems', tenantA, idA);
+          store.deleteTenantRecord('problems', tenantB, idB);
+          cleanupComplete =
+            !store.findTenantRecordById('problems', tenantA, idA) &&
+            !store.findTenantRecordById('problems', tenantB, idB);
+        }
         return {
           node_id: 'DN-15',
-          name: 'Multi-Tenant Partition Manager',
+          name: 'Multi-Tenant Row Partition Guard',
           category: 'SECURITY',
           executed: true,
           claim_scope: 'LOCAL',
-          status: 'FAIL_CLOSED',
+          status: isolated && cleanupComplete ? 'SUCCESS' : 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { cryptographic_tenant_isolation_verified: false, reason: 'Distinct static hashes do not verify tenant storage isolation or a trusted key boundary.' }
+          evidence: {
+            tenant_scoped_reads_tested: true,
+            cross_tenant_rows_exposed: !isolated,
+            cleanup_complete: cleanupComplete,
+            guarantee_scope: 'ROW_LEVEL_TENANT_FILTERING_ONLY',
+            cryptographic_key_isolation_verified: false
+          }
         };
       }
 
