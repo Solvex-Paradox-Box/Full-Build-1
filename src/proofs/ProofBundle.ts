@@ -115,6 +115,9 @@ export class ProofBundleBuilder {
   }
 
   public seal(): ProofBundleEntity {
+    if (this.bundle.implementation_hash === computeSha256('EMPTY_IMPL')) {
+      this.bundle.limitations.push('No implementation source has been attached to this proof bundle.');
+    }
     const hasFailingTest = this.bundle.tests.some(test => !test.passed);
     const hasFailedZ3Proof = this.bundle.formal_proofs.some(proof => proof.system === 'Z3_SMT' && !proof.checked);
     const hasReplayMismatch = this.bundle.replay_results.some(replay => replay.status !== 'MATCH');
