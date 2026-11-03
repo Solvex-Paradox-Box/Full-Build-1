@@ -44,8 +44,9 @@ console.log(JSON.stringify({
   report: 'artifacts/daisy-54-runtime-report.json'
 }, null, 2));
 
-// A nonzero status is intentional when any node is not a positive functional
-// SUCCESS. The workflow uploads the report even when this step fails.
+// Fail only when the 54-handler invocation is incomplete or a handler throws.
+// Fail-closed/provider-required statuses remain visible in the artifact and do
+// not masquerade as functional SUCCESS. The workflow always uploads the report.
 if (!output.runtime_integrity_passed) {
   process.exitCode = 1;
 }
