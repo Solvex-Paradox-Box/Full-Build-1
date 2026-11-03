@@ -456,6 +456,9 @@ export async function runEnterpriseVerification() {
     if (res.success) {
       throw new Error('Order creation succeeded on non-existent unverified offer!');
     }
+    if (!res.error?.includes('verified identity and signed tenant claims')) {
+      throw new Error('Order creation did not enforce the verified-identity authorization boundary first.');
+    }
   });
 
   // 26. Local token minting is disabled until the approved OIDC verifier is configured.
