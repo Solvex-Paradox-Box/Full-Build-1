@@ -77,7 +77,7 @@ export class NOPOTVerifier {
   }
 
   public static async verifyWithZ3Solver(
-    algorithmName: string,
+    algorithmName: 'BoundedNaturalNumberDecrement',
     initialState: number = 10
   ): Promise<{ certificate: NOPOTCertificate; z3Result: Z3ProofResult }> {
     const cert = NOPOTVerifier.verifyAlgorithmTermination(algorithmName, n => n - 1, initialState, 1000);
@@ -108,6 +108,22 @@ export class NOPOTEngine {
   }
 
   public static async verifyWithZ3(goal: TerminationGoal): Promise<{ certificate: NOPOTCertificate; z3Result: Z3ProofResult }> {
-    return NOPOTVerifier.verifyWithZ3Solver(goal.goal_id, goal.initial_state);
+    if (goal.goal_id !== 'BoundedNaturalNumberDecrement' ||
+        !Number.isSafeInteger(goal.initial_state) ||
+        goal.initial_state < 0 ||
+        !Number.isSafeInteger(goal.max_bounded_steps) ||
+        goal.max_bounded_steps < goal.initial_state) {
+      throw new Error('BLOCKED: the available Z3 theorem is limited to a bounded natural-number decrement goal.');
+    }
+    // Check the supplied transition and ranking functions at every state in
+    // this finite run before associating the general decrement theorem.
+    for (let state = goal.initial_state; state > 0; state--) {
+      if (goal.transition_function(state) !== state - 1 ||
+          goal.variant_function(state) !== state ||
+          goal.variant_function(state - 1) !== state - 1) {
+        throw new Error('BLOCKED: supplied transition/ranking functions do not match the verified decrement theorem.');
+      }
+    }
+    return NOPOTVerifier.verifyWithZ3Solver('BoundedNaturalNumberDecrement', goal.initial_state);
   }
 }
