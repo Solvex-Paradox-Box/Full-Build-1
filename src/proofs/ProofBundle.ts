@@ -1,5 +1,5 @@
 import { ProofBundleEntity, computeSha256 } from '../database/DatabaseSchema';
-import { Z3ProofResult } from './Z3FormalProofEngine';
+import { Z3FormalProofEngine, Z3ProofResult } from './Z3FormalProofEngine';
 
 export class ProofBundleBuilder {
   private bundle: ProofBundleEntity;
@@ -57,12 +57,18 @@ export class ProofBundleBuilder {
   }
 
   public addZ3Proof(proofResult: Z3ProofResult): this {
+    const authentic = Z3FormalProofEngine.getInstance().isAuthenticResult(proofResult);
     this.bundle.formal_proofs.push({
       system: 'Z3_SMT',
       specification: `[${proofResult.theorem_id}] ${proofResult.theorem_name} (Z3 Engine) - Result: ${proofResult.solver_result.toUpperCase()}`,
-      checked: proofResult.proved,
-      proof_term_hash: proofResult.certificate_sha256
+      checked: authentic,
+      proof_term_hash: authentic
+        ? proofResult.certificate_sha256
+        : computeSha256(`UNAUTHENTICATED_Z3_RECEIPT:${proofResult.theorem_id}:${proofResult.certificate_sha256}`)
     });
+    if (!authentic) {
+      this.bundle.limitations.push('Z3 result object was not issued by the active Z3FormalProofEngine instance or did not match its expected solver result.');
+    }
     return this;
   }
 
