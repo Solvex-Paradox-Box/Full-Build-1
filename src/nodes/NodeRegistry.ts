@@ -56,7 +56,7 @@ export class NodeRegistry {
       { id: 'DN-29', name: 'Preserved Solution Vault (DH-S-001)', category: 'CORE_KERNEL', mode: 'CODE_EXECUTED', purpose: 'Cryptographically sealed verified solution inventory' },
       { id: 'DN-30', name: 'Independent Oracle Attestor', category: 'AUDIT', mode: 'CODE_EXECUTED', purpose: 'External cryptographic witnesses and signature seals' },
       { id: 'DN-31', name: 'Sqlite Local Store Manager', category: 'PERSISTENCE', mode: 'CODE_EXECUTED', purpose: '27-table local multi-tenant relational persistence' },
-      { id: 'DN-32', name: 'Durable JSON WAL Sync Engine', category: 'PERSISTENCE', mode: 'CODE_EXECUTED', purpose: 'Disk write-ahead logging with fsync guarantees' },
+      { id: 'DN-32', name: 'SQLite WAL and Full-Synchronous Durability Guard', category: 'PERSISTENCE', mode: 'CODE_EXECUTED', purpose: 'Verify disk-backed WAL journal and FULL synchronous commits' },
       { id: 'DN-33', name: 'Central Failure Diversion Router', category: 'SECURITY', mode: 'CODE_EXECUTED', purpose: 'Captures and isolates tripped pipeline invariants' },
       { id: 'DN-34', name: 'Neon Postgres Adapter', category: 'ADAPTERS', mode: 'EXTERNAL_PROVIDER_REQUIRED', purpose: 'Serverless cloud PostgreSQL synchronization' },
       { id: 'DN-35', name: 'PayPal Enterprise Payment Gateway', category: 'PAYMENTS', mode: 'EXTERNAL_PROVIDER_REQUIRED', purpose: 'Server-authoritative fiat payment capture and escrow' },
