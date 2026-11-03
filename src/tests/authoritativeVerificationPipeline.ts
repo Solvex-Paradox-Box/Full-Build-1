@@ -796,7 +796,7 @@ ${entRes.results.map(r => `| ${r.test_number.toString().padStart(2, '0')} | ${r.
     if (!persistRep.all_local_passed) productionBlockers.push('GATE-10 Relational persistence or Merkle chain failed.');
     if (lifecycleBlocked) {
       productionBlockers.push('GATE-12 lifecycle blocked: trusted identity and signed tenant claims are unavailable; no order transition or deployment occurred.');
-    } else if (!e2eOk) {
+    } else if (lifecycleGateStatus !== 'PASSED') {
       productionBlockers.push('GATE-12 End-to-end lifecycle verification failed.');
     }
 
