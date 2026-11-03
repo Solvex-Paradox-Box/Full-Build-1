@@ -167,6 +167,17 @@ export class SqliteStore {
     return tableName;
   }
 
+  public findAllRecords<T = any>(tableName: string, limit: number = 100000): T[] {
+    const table = this.assertTableName(tableName);
+    if (this.diskBacked) {
+      return this.db.all(
+        `SELECT * FROM ${table} ORDER BY created_at ASC, id ASC LIMIT ?`,
+        [limit]
+      ).map(row => this.hydrateRow(row)) as T[];
+    }
+    return (this.tables.get(table) || []).slice(0, limit) as T[];
+  }
+
   public findTenantRecords<T = any>(tableName: string, tenantId: string, limit: number = 100): T[] {
     const table = this.assertTableName(tableName);
     if (this.diskBacked) {
