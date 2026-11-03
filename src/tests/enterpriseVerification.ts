@@ -223,14 +223,13 @@ export async function runEnterpriseVerification() {
     }
   });
 
-  // 11. A seeded solution is not verified without execution evidence.
-  runTest('Preserved Solution DH-S-001 Remains Partial Without Proof Evidence', 'SOLUTIONS', () => {
+  // 11. Pipeline construction must not seed fabricated solution records.
+  runTest('Solution Pipeline Does Not Invent Unverified Solution Records', 'SOLUTIONS', () => {
     SolutionPipeline.getInstance();
     const store = DurableStore.getInstance();
-    const sol = store.getState().solutions['DH-S-001'];
-    if (!sol) throw new Error('Preserved solution DH-S-001 missing from store');
-    if (sol.verification_status !== 'PARTIAL') throw new Error('DH-S-001 must remain PARTIAL without proof evidence');
-    if (!sol.reversibility_guaranteed) throw new Error('DH-S-001 must guarantee reversibility');
+    if (store.getState().solutions['DH-S-001']) {
+      throw new Error('Pipeline constructor inserted a solution without source-backed verification evidence');
+    }
   });
 
   // 12. Proof Bundle Builder & Attestation Sealing
@@ -261,28 +260,30 @@ export async function runEnterpriseVerification() {
     }
   });
 
-  // 14. Pipeline does not claim stage execution without implemented handlers.
-  runTest('21-Stage Pipeline Blocks Unimplemented Stage Handlers', 'PIPELINE', () => {
+  // 14. Pipeline runs its implemented static gates and stops at the absent sandbox.
+  runTest('21-Stage Pipeline Stops at Unavailable Cleanroom Adapter', 'PIPELINE', async () => {
     const pipeline = SolutionPipeline.getInstance();
-    const result = pipeline.runPipeline('DH-P-001', 'export function solve() { return true; }');
-    if (result.overall_success) throw new Error('Pipeline claimed success without stage handlers');
-    if (result.completed_stages !== 0 || result.total_stages !== 21) {
-      throw new Error(`Expected 0 of 21 stages completed, got ${result.completed_stages} of ${result.total_stages}`);
+    const result = await pipeline.runPipeline('DH-P-001', 'export function solve() { return true; }');
+    if (result.overall_success) throw new Error('Pipeline claimed success without sandbox and downstream proof handlers');
+    if (result.total_stages !== 21) throw new Error(`Expected 21 declared stages, got ${result.total_stages}`);
+    if (result.stage_traces.length === 0) throw new Error('Pipeline emitted no stage trace');
+    const last = result.stage_traces[result.stage_traces.length - 1];
+    if (last.status !== 'BLOCKED' || last.stage !== 2) {
+      throw new Error(`Expected missing persisted problem to block at stage 2, got stage ${last.stage} / ${last.status}`);
     }
-    if (!result.rejection_reason?.startsWith('BLOCKED:')) throw new Error('Pipeline did not report a fail-closed blocker');
+    if (!result.rejection_reason?.includes('persisted problem record')) throw new Error('Pipeline did not expose the actual missing-input blocker');
   });
 
   // 15. Pipeline Fail-Closed Boundary Rejection
-  runTest('Pipeline Fail-Closed Gate Halts and Quarantines on Error', 'PIPELINE', () => {
+  runTest('Pipeline Rejects Invalid TypeScript Before Any Later Stage', 'PIPELINE', async () => {
     const pipeline = SolutionPipeline.getInstance();
-    const badCode = 'export function bad() { /* FAIL_STAGE_9 */ return false; }';
-    const result = pipeline.runPipeline('DH-P-001', badCode);
-    if (result.overall_success) {
-      throw new Error('Poisoned code traversed pipeline unexpectedly without tripping gate!');
+    const result = await pipeline.runPipeline('DH-P-001', 'export function broken( {');
+    if (result.overall_success) throw new Error('Syntactically invalid source was accepted');
+    const first = result.stage_traces[0];
+    if (!first || first.stage !== 1 || first.status !== 'FAILED') {
+      throw new Error('Invalid source did not fail at the syntax parsing gate');
     }
-    if (result.completed_stages >= 21) {
-      throw new Error('Stages continued execution after poison gate tripped');
-    }
+    if (result.stage_traces.length !== 1) throw new Error('Pipeline continued after syntax failure');
   });
 
   // 16. Defensible Pricing Formula v1.4 Determinism
