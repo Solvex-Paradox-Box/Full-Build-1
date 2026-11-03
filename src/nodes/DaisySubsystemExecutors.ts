@@ -257,7 +257,7 @@ export class DaisySubsystemExecutors {
       case 'DN-12': {
         const pipe = SolutionPipeline.getInstance();
         const res = pipe.runPipeline('DH-P-001', '/* FAIL_STAGE_9 */ return false;');
-        const stopped = !res.overall_success && res.completed_stages < 21;
+        const stopped = res.rejection_reason?.includes('Sentinel detected fatal specification anomaly') === true;
         return {
           node_id: 'DN-12',
           name: 'Fail-Closed Circuit Breaker',
@@ -266,7 +266,7 @@ export class DaisySubsystemExecutors {
           claim_scope: 'LOCAL',
           status: stopped ? 'SUCCESS' : 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { circuit_tripped: stopped, stopped_at_stage: res.completed_stages }
+          evidence: { circuit_tripped: stopped, stopped_at_stage: res.completed_stages, blocker: res.rejection_reason }
         };
       }
 
@@ -306,18 +306,15 @@ export class DaisySubsystemExecutors {
 
       // 15. DN-15: Multi-Tenant Partition Manager
       case 'DN-15': {
-        const k1 = computeSha256('TENANT_A_SECRET');
-        const k2 = computeSha256('TENANT_B_SECRET');
-        const isolated = k1 !== k2;
         return {
           node_id: 'DN-15',
           name: 'Multi-Tenant Partition Manager',
           category: 'SECURITY',
           executed: true,
           claim_scope: 'LOCAL',
-          status: isolated ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { isolated }
+          evidence: { cryptographic_tenant_isolation_verified: false, reason: 'Distinct static hashes do not verify tenant storage isolation or a trusted key boundary.' }
         };
       }
 
@@ -373,35 +370,29 @@ export class DaisySubsystemExecutors {
 
       // 18. DN-18: Cleanroom Deterministic Sandbox
       case 'DN-18': {
-        const seed = 'CLEANROOM_INPUT_SEED';
-        const h1 = computeSha256(seed);
-        const h2 = computeSha256(seed);
         return {
           node_id: 'DN-18',
           name: 'Cleanroom Deterministic Sandbox',
           category: 'CORE_KERNEL',
           executed: true,
           claim_scope: 'LOCAL',
-          status: h1 === h2 ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { deterministic: h1 === h2, digest: h1 }
+          evidence: { isolated_cleanroom_execution_verified: false, reason: 'Hashing the same literal twice does not exercise a cleanroom sandbox.' }
         };
       }
 
       // 19. DN-19: Bitrot & Drift Detection Oracle
       case 'DN-19': {
-        const expected = computeSha256('EXPECTED_CANONICAL_SPEC');
-        const actual = computeSha256('EXPECTED_CANONICAL_SPEC');
-        const drift = expected !== actual;
         return {
           node_id: 'DN-19',
           name: 'Bitrot & Drift Detection Oracle',
           category: 'AUDIT',
           executed: true,
           claim_scope: 'LOCAL',
-          status: !drift ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { bitrot_detected: drift, digest: expected }
+          evidence: { artifact_drift_check_performed: false, reason: 'No canonical artifact was read or compared.' }
         };
       }
 
@@ -415,9 +406,9 @@ export class DaisySubsystemExecutors {
           category: 'LOGIC_SOLVER',
           executed: true,
           claim_scope: 'MODEL',
-          status: zeno && zeno.verification_status === 'VERIFIED' ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { paradox_resolved: zeno?.code, status: zeno?.verification_status }
+          evidence: { registry_entry: zeno?.code, registry_status: zeno?.verification_status, resolution_executed: false }
         };
       }
 
@@ -495,9 +486,9 @@ export class DaisySubsystemExecutors {
           category: 'LOGIC_SOLVER',
           executed: true,
           claim_scope: 'MODEL',
-          status: isStrictlyWellOrdered ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { well_ordered: isStrictlyWellOrdered }
+          evidence: { finite_sample_strictly_increasing: isStrictlyWellOrdered, ordinal_hierarchy_verified: false }
         };
       }
 
@@ -595,17 +586,15 @@ export class DaisySubsystemExecutors {
 
       // 30. DN-30: Independent Oracle Attestor
       case 'DN-30': {
-        const witness = 'ORACLE_WITNESS_SEAL_V1';
-        const signature = computeSha256(witness + ':ED25519_KEY_ATTEST');
         return {
           node_id: 'DN-30',
           name: 'Independent Oracle Attestor',
           category: 'AUDIT',
           executed: true,
           claim_scope: 'LOCAL',
-          status: signature.length === 64 ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { oracle_signature: signature }
+          evidence: { independent_oracle_attestation_verified: false, reason: 'No independent oracle key or signature verification is configured.' }
         };
       }
 
@@ -621,25 +610,23 @@ export class DaisySubsystemExecutors {
           category: 'PERSISTENCE',
           executed: true,
           claim_scope: 'LOCAL',
-          status: count === 27 ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: store.isDiskBacked() && count === 27 ? 'SUCCESS' : 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { table_count: count }
+          evidence: { table_count: count, disk_backed: store.isDiskBacked() }
         };
       }
 
       // 32. DN-32: Durable JSON WAL Sync Engine
       case 'DN-32': {
-        const durable = DurableStore.getInstance();
-        const rec = durable.appendAudit('TENANT_ROOT', 'DN-32', 'WAL_SYNC', 'STORE', 'WAL_REC', { sync: true });
         return {
           node_id: 'DN-32',
           name: 'Durable JSON WAL Sync Engine',
           category: 'PERSISTENCE',
           executed: true,
           claim_scope: 'LOCAL',
-          status: rec.record_hash ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { wal_hash: rec.record_hash }
+          evidence: { durable_wal_sync_verified: false, reason: 'The current server-side DurableStore has no disk WAL or fsync implementation.' }
         };
       }
 
@@ -741,42 +728,24 @@ export class DaisySubsystemExecutors {
           name: 'Coinbase Commerce Gateway',
           category: 'ADAPTERS',
           executed: true,
-          claim_scope: hasKey ? 'PRODUCTION' : 'LOCAL',
-          status: hasKey ? 'SUCCESS' : 'PROVIDER_REQUIRED',
+          claim_scope: 'LOCAL',
+          status: 'PROVIDER_REQUIRED',
           duration_ms: performance.now() - start,
-          evidence: { configured: hasKey, fail_closed: true }
+          evidence: { configuration_present: hasKey, provider_authenticated: false, fail_closed: true }
         };
       }
 
       // 38. DN-38: Sovereign Settlement Escrow Program
       case 'DN-38': {
-        const testDeposit = {
-          escrow_id: `escrow_sov_${Date.now()}`,
-          buyer_id: 'BUYER_SOVEREIGN',
-          seller_id: 'SELLER_SOVEREIGN',
-          amount_cents: 10000,
-          currency: 'USD',
-          timelock_block: 1000,
-          status: 'LOCKED',
-          settlement_engine: 'SOVEREIGN_CRYPTOGRAPHIC_ESCROW'
-        };
-        const escrowHash = computeSha256(JSON.stringify(testDeposit));
         return {
           node_id: 'DN-38',
           name: 'Sovereign Settlement Escrow Program',
           category: 'SETTLEMENT',
           executed: true,
           claim_scope: 'LOCAL',
-          status: 'SUCCESS',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: {
-            escrow_id: testDeposit.escrow_id,
-            settlement_engine: testDeposit.settlement_engine,
-            escrow_hash: escrowHash,
-            timelock_enforced: true,
-            multisig_verified: true,
-            fail_closed: true
-          }
+          evidence: { escrow_execution_verified: false, reason: 'No escrow contract, signer quorum, or settlement provider was executed.' }
         };
       }
 
@@ -789,74 +758,66 @@ export class DaisySubsystemExecutors {
           name: 'Ethereum EVM Escrow Bridge',
           category: 'ADAPTERS',
           executed: true,
-          claim_scope: hasEth ? 'PRODUCTION' : 'LOCAL',
-          status: hasEth ? 'SUCCESS' : 'PROVIDER_REQUIRED',
+          claim_scope: 'LOCAL',
+          status: 'PROVIDER_REQUIRED',
           duration_ms: performance.now() - start,
-          evidence: { configured: hasEth, fail_closed: true }
+          evidence: { configuration_present: hasEth, provider_authenticated: false, fail_closed: true }
         };
       }
 
       // 40. DN-40: Lean4 Theorem Verification Bridge
       case 'DN-40': {
-        const mockLeanCertificate = '(theorem russell_empty : False := by contradiction)';
-        const certHash = computeSha256(mockLeanCertificate);
         return {
           node_id: 'DN-40',
           name: 'Lean4 Theorem Verification Bridge',
           category: 'LOGIC_SOLVER',
           executed: true,
           claim_scope: 'MODEL',
-          status: 'SUCCESS',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { kernel: 'Lean4_Type_Theory', cert_digest: certHash, verified: true }
+          evidence: { prover_execution_verified: false, reason: 'Lean4 is not installed or invoked by this node.' }
         };
       }
 
       // 41. DN-41: Isabelle/HOL Proof Ingestion Node
       case 'DN-41': {
-        const holProof = 'lemma zeno_halv: "d > 0 ==> d / 2 < d" by auto';
-        const certHash = computeSha256(holProof);
         return {
           node_id: 'DN-41',
           name: 'Isabelle/HOL Proof Ingestion Node',
           category: 'LOGIC_SOLVER',
           executed: true,
           claim_scope: 'MODEL',
-          status: 'SUCCESS',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { logic: 'Higher_Order_Logic', cert_digest: certHash, verified: true }
+          evidence: { prover_execution_verified: false, reason: 'Isabelle/HOL is not installed or invoked by this node.' }
         };
       }
 
       // 42. DN-42: Coq Gallina Specification Node
       case 'DN-42': {
-        const coqTerm = 'Inductive Nat : Set := O | S (n : Nat).';
-        const certHash = computeSha256(coqTerm);
         return {
           node_id: 'DN-42',
           name: 'Coq Gallina Specification Node',
           category: 'LOGIC_SOLVER',
           executed: true,
           claim_scope: 'MODEL',
-          status: 'SUCCESS',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { calculus: 'Inductive_Constructions', cert_digest: certHash, verified: true }
+          evidence: { prover_execution_verified: false, reason: 'Coq is not installed or invoked by this node.' }
         };
       }
 
       // 43. DN-43: Daisy Brain Autonomous Planner
       case 'DN-43': {
-        const goals = ['INTAKE', 'VERIFICATION', 'SETTLEMENT'];
-        const planGraph = goals.map((g, idx) => ({ stage: idx + 1, goal: g, status: 'PLANNED' }));
         return {
           node_id: 'DN-43',
           name: 'Daisy Brain Autonomous Planner',
           category: 'CORE_KERNEL',
           executed: true,
           claim_scope: 'LOCAL',
-          status: planGraph.length === 3 ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { plan_stages: planGraph.length, graph: planGraph }
+          evidence: { goal_decomposition_executed: false, reason: 'No problem-specific planning input or planning engine is wired to this node.' }
         };
       }
 
@@ -878,51 +839,43 @@ export class DaisySubsystemExecutors {
 
       // 45. DN-45: Two Generals Consensus Barrier Node
       case 'DN-45': {
-        // Formal proof of impossibility of common knowledge over unreliable communications
-        const unreliabilityAcknowledged = true;
-        const barrierEnforced = true;
         return {
           node_id: 'DN-45',
           name: 'Two Generals Consensus Barrier Node',
           category: 'LOGIC_SOLVER',
           executed: true,
           claim_scope: 'MODEL',
-          status: barrierEnforced ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { impossibility_enforced: true, common_knowledge_lossy_bound: 'UNSAT' }
+          evidence: { formal_model_executed: false, reason: 'No distributed-protocol model or solver execution is wired to this node.' }
         };
       }
 
       // 46. DN-46: Chandy-Lamport Distributed Snapshot
       case 'DN-46': {
-        const processStates = { P1: { state: 'COMMITTED' }, P2: { state: 'COMMITTED' } };
-        const snapshotDigest = computeSha256(JSON.stringify(processStates));
         return {
           node_id: 'DN-46',
           name: 'Chandy-Lamport Distributed Snapshot',
           category: 'PERSISTENCE',
           executed: true,
           claim_scope: 'LOCAL',
-          status: 'SUCCESS',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { consistent_cut_digest: snapshotDigest }
+          evidence: { distributed_snapshot_executed: false, reason: 'No distributed process state or channel markers are available.' }
         };
       }
 
       // 47. DN-47: Raft Consensus State Machine
       case 'DN-47': {
-        const term = 1;
-        const leader = 'NODE_DAISY_LEADER';
-        const logEntries = [{ index: 1, term: 1, cmd: 'INITIALIZE_CONSENSUS' }];
         return {
           node_id: 'DN-47',
           name: 'Raft Consensus State Machine',
           category: 'CORE_KERNEL',
           executed: true,
           claim_scope: 'LOCAL',
-          status: 'SUCCESS',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { current_term: term, leader, log_length: logEntries.length }
+          evidence: { raft_consensus_executed: false, reason: 'No Raft peers, election, or replicated log are configured.' }
         };
       }
 
@@ -936,25 +889,23 @@ export class DaisySubsystemExecutors {
           category: 'CORE_KERNEL',
           executed: true,
           claim_scope: 'LOCAL',
-          status: clock.N1 === 2 ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { vector_clock: clock, causal_order: 'VALID' }
+          evidence: { local_clock_incremented: clock.N1 === 2, distributed_causal_order_verified: false }
         };
       }
 
       // 49. DN-49: License Generation & Proof Tokenizer
       case 'DN-49': {
-        const licenseSeed = 'SOL_DH-S-001:TENANT_ENTERPRISE';
-        const licenseKey = `LIC-${computeSha256(licenseSeed).slice(0, 32).toUpperCase()}`;
         return {
           node_id: 'DN-49',
           name: 'License Generation & Proof Tokenizer',
           category: 'MARKETPLACE',
           executed: true,
           claim_scope: 'LOCAL',
-          status: licenseKey.startsWith('LIC-') ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { license_key: licenseKey }
+          evidence: { signed_license_issued: false, reason: 'No trusted signing key or verified solution authorization is configured.' }
         };
       }
 
@@ -969,57 +920,49 @@ export class DaisySubsystemExecutors {
           claim_scope: 'LOCAL',
           status: 'SUCCESS',
           duration_ms: performance.now() - start,
-          evidence: { heap_used_bytes: mem?.heapUsed || 0, telemetry_online: true }
+          evidence: { heap_used_bytes: mem?.heapUsed || 0 }
         };
       }
 
       // 51. DN-51: Hardware Security Module (HSM) Proxy
       case 'DN-51': {
-        const hsmRootProof = computeSha256('FIPS_140_3_LEVEL_4_ENCLAVE_ROOT_ATTEST');
         return {
           node_id: 'DN-51',
           name: 'Hardware Security Module (HSM) Proxy',
           category: 'SECURITY',
           executed: true,
           claim_scope: 'LOCAL',
-          status: 'SUCCESS',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { hsm_attestation_hash: hsmRootProof }
+          evidence: { hsm_attestation_verified: false, reason: 'No HSM connection or signed device attestation is configured.' }
         };
       }
 
       // 52. DN-52: Ed25519 Cryptographic Signer
       case 'DN-52': {
-        const message = 'SOVEREIGN_TRANSACTION_PAYLOAD';
-        const sig = computeSha256(message + ':ED25519_KEY');
         return {
           node_id: 'DN-52',
           name: 'Ed25519 Cryptographic Signer',
           category: 'SECURITY',
           executed: true,
           claim_scope: 'LOCAL',
-          status: sig.length === 64 ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { signature: sig, verified: true }
+          evidence: { ed25519_signature_verified: false, reason: 'No Ed25519 private key or signature verifier is configured.' }
         };
       }
 
       // 53. DN-53: Zero-Knowledge Range Proof Engine
       case 'DN-53': {
-        const value = 2500;
-        const min = 0;
-        const max = 10000;
-        const inRange = value >= min && value <= max;
-        const commitment = computeSha256(`VALUE_COMMITMENT_${value}`);
         return {
           node_id: 'DN-53',
           name: 'Zero-Knowledge Range Proof Engine',
           category: 'SECURITY',
           executed: true,
           claim_scope: 'LOCAL',
-          status: inRange ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { in_range: inRange, commitment }
+          evidence: { zero_knowledge_proof_verified: false, reason: 'No commitment scheme or range-proof verifier is configured.' }
         };
       }
 

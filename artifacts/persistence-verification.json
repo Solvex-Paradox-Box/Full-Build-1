@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-22T15:31:52.835Z",
+  "timestamp": "2026-11-02T05:10:29.641Z",
   "claim_scope": "LOCAL",
   "sqlite": {
     "status": "VERIFIED",
@@ -19,7 +19,7 @@
       {
         "step": "MIGRATION_AND_SCHEMA_CREATION",
         "passed": true,
-        "duration_ms": 0.02213800000026822,
+        "duration_ms": 0.01828399999976682,
         "details": {
           "table_count": 27,
           "required": 27
@@ -28,16 +28,16 @@
       {
         "step": "RECORD_INSERT",
         "passed": true,
-        "duration_ms": 0.08850700000039069,
+        "duration_ms": 0.06634399999893503,
         "details": {
           "tenant_id": "TENANT_ALPHA",
-          "id": "sol_test_1792683112835"
+          "id": "sol_test_1793596229641"
         }
       },
       {
         "step": "RECORD_SELECT",
         "passed": true,
-        "duration_ms": 0.07939699999951699,
+        "duration_ms": 0.07369800000014948,
         "details": {
           "records_found": 1,
           "record_matched": true
@@ -46,25 +46,25 @@
       {
         "step": "RECORD_UPDATE",
         "passed": true,
-        "duration_ms": 0.02132799999890267,
+        "duration_ms": 0.11729899999954796,
         "details": {
-          "target_id": "sol_test_1792683112835",
+          "target_id": "sol_test_1793596229641",
           "updated_status": "VERIFIED_ACTIVE"
         }
       },
       {
         "step": "TRANSACTION_ROLLBACK",
         "passed": true,
-        "duration_ms": 0.31816799999978684,
+        "duration_ms": 0.2392359999994369,
         "details": {
-          "rolled_back_id": "sol_rb_1792683112835",
+          "rolled_back_id": "sol_rb_1793596229642",
           "record_absent_after_rollback": true
         }
       },
       {
         "step": "RESTART_READBACK",
         "passed": true,
-        "duration_ms": 0.07147699999950419,
+        "duration_ms": 0.05175699999927019,
         "details": {
           "disk_file_exists": false,
           "readback_verified": true
@@ -73,7 +73,7 @@
       {
         "step": "TENANT_ISOLATION",
         "passed": true,
-        "duration_ms": 0.006327999999484746,
+        "duration_ms": 0.004458000001250184,
         "details": {
           "tenant_a": "TENANT_ALPHA",
           "tenant_b": "TENANT_BETA",
@@ -84,41 +84,42 @@
       {
         "step": "AUDIT_CHAIN_PERSISTENCE",
         "passed": true,
-        "duration_ms": 1.0767479999994976,
+        "duration_ms": 0.2905219999993278,
         "details": {
-          "audit_record_id": "audit_1792683112836_9",
+          "audit_record_id": "audit_1793596229642_7",
           "merkle_chain_valid": true,
-          "chain_blocks": 10
+          "chain_blocks": 8
         }
       },
       {
         "step": "EVIDENCE_PERSISTENCE",
         "passed": true,
-        "duration_ms": 0.14056499999969674,
+        "duration_ms": 0.08925699999963399,
         "details": {
-          "bundle_id": "ev_bundle_1792683112837",
+          "bundle_id": "ev_bundle_1793596229642",
           "verified": true
         }
       }
     ]
   },
   "neon": {
-    "configured": true,
-    "connected": true,
-    "status": "VERIFIED",
-    "claim_scope": "PRODUCTION",
-    "notes": "Successfully connected and verified against live Neon Serverless PostgreSQL instance.",
+    "configured": false,
+    "connected": false,
+    "status": "PROVIDER_REQUIRED",
+    "claim_scope": "LOCAL",
+    "notes": "NEON_DATABASE_URL not configured in environment. Local SQLite verified; Neon production persistence blocked.",
     "steps": [
       {
-        "step": "NEON_CONNECTION_AND_QUERY",
-        "passed": true,
-        "duration_ms": 36.33298300000024,
+        "step": "NEON_PREFLIGHT_CHECK",
+        "passed": false,
+        "duration_ms": 0,
         "details": {
-          "status": "CONNECTED"
+          "status": "PROVIDER_REQUIRED",
+          "message": "NEON_DATABASE_URL absent"
         }
       }
     ]
   },
   "all_local_passed": true,
-  "production_persistence_ready": true
+  "production_persistence_ready": false
 }

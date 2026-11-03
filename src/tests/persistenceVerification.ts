@@ -65,8 +65,11 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
   // ==========================================
   // 1. LOCAL SQLITE VERIFICATION
   // ==========================================
+  const dbPath = './.sovereign_data/sovereign.sqlite';
   const sqlite = SqliteStore.getInstance();
   const db = sqlite.getRawDb();
+  const diskDbExists = await checkDiskDbExists(dbPath);
+  const diskBacked = sqlite.isDiskBacked() && diskDbExists;
 
   // Step 1: Migration & Schema Creation (27 tables)
   const t0 = performance.now();
@@ -75,12 +78,12 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
   try {
     const tables = db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
     tableCount = tables.length;
-    schemaOk = tableCount === 27;
+    schemaOk = diskBacked && tableCount === 27;
     sqliteSteps.push({
       step: 'MIGRATION_AND_SCHEMA_CREATION',
       passed: schemaOk,
       duration_ms: performance.now() - t0,
-      details: { table_count: tableCount, required: 27 }
+      details: { table_count: tableCount, required: 27, disk_file_exists: diskDbExists, disk_backed: sqlite.isDiskBacked() }
     });
   } catch (err: any) {
     sqliteSteps.push({
@@ -104,12 +107,13 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
       price_cents: 15000,
       author_id: 'usr_alpha'
     });
-    insertOk = true;
+    const persisted = db.get('SELECT id, tenant_id, status FROM solutions WHERE id = ?', [testSolutionId]);
+    insertOk = diskBacked && persisted?.id === testSolutionId && persisted?.tenant_id === 'TENANT_ALPHA';
     sqliteSteps.push({
       step: 'RECORD_INSERT',
-      passed: true,
+      passed: insertOk,
       duration_ms: performance.now() - t1,
-      details: { tenant_id: 'TENANT_ALPHA', id: testSolutionId }
+      details: { tenant_id: 'TENANT_ALPHA', id: testSolutionId, persisted_readback: insertOk }
     });
   } catch (err: any) {
     sqliteSteps.push({
@@ -124,14 +128,14 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
   const t2 = performance.now();
   let selectOk = false;
   try {
-    const records = sqlite.findTenantRecords('solutions', 'TENANT_ALPHA');
-    const found = records.some(r => r.id === testSolutionId);
-    selectOk = found;
+    const persisted = db.get('SELECT id FROM solutions WHERE id = ? AND tenant_id = ?', [testSolutionId, 'TENANT_ALPHA']);
+    const found = persisted?.id === testSolutionId;
+    selectOk = diskBacked && found;
     sqliteSteps.push({
       step: 'RECORD_SELECT',
       passed: selectOk,
       duration_ms: performance.now() - t2,
-      details: { records_found: records.length, record_matched: found }
+      details: { record_matched: found, disk_file_exists: diskDbExists, disk_backed: sqlite.isDiskBacked() }
     });
   } catch (err: any) {
     sqliteSteps.push({
@@ -147,14 +151,13 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
   let updateOk = false;
   try {
     sqlite.updateTenantRecord('solutions', 'TENANT_ALPHA', testSolutionId, { status: 'VERIFIED_ACTIVE' });
-    const records = sqlite.findTenantRecords('solutions', 'TENANT_ALPHA');
-    const updated = records.find(r => r.id === testSolutionId);
-    updateOk = Boolean(updated && updated.status === 'VERIFIED_ACTIVE');
+    const updated = db.get('SELECT id, status FROM solutions WHERE id = ? AND tenant_id = ?', [testSolutionId, 'TENANT_ALPHA']);
+    updateOk = diskBacked && Boolean(updated && updated.status === 'VERIFIED_ACTIVE');
     sqliteSteps.push({
       step: 'RECORD_UPDATE',
       passed: updateOk,
       duration_ms: performance.now() - t3,
-      details: { target_id: testSolutionId, updated_status: updated?.status }
+      details: { target_id: testSolutionId, updated_status: updated?.status, disk_file_exists: diskDbExists, disk_backed: sqlite.isDiskBacked() }
     });
   } catch (err: any) {
     sqliteSteps.push({
@@ -170,27 +173,19 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
   let rollbackOk = false;
   const rollbackId = `sol_rb_${Date.now()}`;
   try {
-    // Attempt transaction with intentional rollback
+    if (!diskBacked) throw new Error('BLOCKED: disk-backed SQLite is unavailable.');
     db.exec('BEGIN TRANSACTION;');
-    sqlite.insertTenantRecord('solutions', 'TENANT_ALPHA', {
-      id: rollbackId,
-      title: 'Rollback Invariant',
-      domain: 'LOGIC',
-      status: 'CANCELLED',
-      price_cents: 1000,
-      author_id: 'usr_alpha'
-    });
-    sqlite.deleteTenantRecord('solutions', 'TENANT_ALPHA', rollbackId);
+    db.run('INSERT INTO solutions (id, tenant_id, status) VALUES (?, ?, ?)', [rollbackId, 'TENANT_ALPHA', 'CANCELLED']);
     db.exec('ROLLBACK;');
 
-    const afterRollback = sqlite.findTenantRecords('solutions', 'TENANT_ALPHA');
-    const rolledBack = !afterRollback.some(r => r.id === rollbackId);
+    const afterRollback = db.get('SELECT id FROM solutions WHERE id = ?', [rollbackId]);
+    const rolledBack = !afterRollback;
     rollbackOk = rolledBack;
     sqliteSteps.push({
       step: 'TRANSACTION_ROLLBACK',
       passed: rollbackOk,
       duration_ms: performance.now() - t4,
-      details: { rolled_back_id: rollbackId, record_absent_after_rollback: rolledBack }
+      details: { rolled_back_id: rollbackId, record_absent_after_rollback: rolledBack, disk_file_exists: diskDbExists, disk_backed: sqlite.isDiskBacked() }
     });
   } catch (err: any) {
     sqliteSteps.push({
@@ -206,26 +201,24 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
   let restartReadbackOk = false;
   try {
     // Re-instantiate sqlite database reader from disk file
-    const dbPath = './.sovereign_data/sovereign.sqlite';
-    const diskExists = await checkDiskDbExists(dbPath);
-    if (diskExists) {
+    if (diskBacked) {
       // @ts-ignore
       const nodeSqlite = typeof require === 'function' ? require('node:sqlite') : null;
       if (nodeSqlite && nodeSqlite.DatabaseSync) {
         const freshDb = new nodeSqlite.DatabaseSync(dbPath);
         const rows = freshDb.prepare('SELECT id, status FROM solutions WHERE id = ?').all(testSolutionId);
-        restartReadbackOk = rows.length > 0;
+        restartReadbackOk = rows.some((row: any) => row.id === testSolutionId);
       } else {
-        restartReadbackOk = true;
+        restartReadbackOk = false;
       }
     } else {
-      restartReadbackOk = true;
+      restartReadbackOk = false;
     }
     sqliteSteps.push({
       step: 'RESTART_READBACK',
       passed: restartReadbackOk,
       duration_ms: performance.now() - t5,
-      details: { disk_file_exists: diskExists, readback_verified: restartReadbackOk }
+      details: { disk_file_exists: diskDbExists, disk_backed: sqlite.isDiskBacked(), readback_verified: restartReadbackOk }
     });
   } catch (err: any) {
     sqliteSteps.push({
@@ -241,9 +234,10 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
   let tenantIsolationOk = false;
   try {
     // Tenant B queries solutions - must NOT see Tenant A's private records
-    const tenantBRecords = sqlite.findTenantRecords('solutions', 'TENANT_BETA');
-    const leaked = tenantBRecords.some(r => r.id === testSolutionId);
-    tenantIsolationOk = !leaked;
+    const tenantARecord = db.get('SELECT id FROM solutions WHERE id = ? AND tenant_id = ?', [testSolutionId, 'TENANT_ALPHA']);
+    const tenantBRecords = db.all('SELECT id FROM solutions WHERE tenant_id = ?', ['TENANT_BETA']);
+    const leaked = tenantBRecords.some((r: any) => r.id === testSolutionId);
+    tenantIsolationOk = diskBacked && tenantARecord?.id === testSolutionId && !leaked;
     sqliteSteps.push({
       step: 'TENANT_ISOLATION',
       passed: tenantIsolationOk,
@@ -251,8 +245,11 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
       details: {
         tenant_a: 'TENANT_ALPHA',
         tenant_b: 'TENANT_BETA',
+        tenant_a_record_readback: tenantARecord?.id === testSolutionId,
         tenant_b_records_count: tenantBRecords.length,
-        leak_detected: leaked
+        leak_detected: leaked,
+        disk_file_exists: diskDbExists,
+        disk_backed: sqlite.isDiskBacked()
       }
     });
   } catch (err: any) {
@@ -278,7 +275,8 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
       { timestamp }
     );
     const chainVerification = durable.verifyChain();
-    auditOk = chainVerification.valid && Boolean(appended && appended.id);
+    const persistedAudit = db.get('SELECT id FROM audit_records WHERE id = ?', [appended.id]);
+    auditOk = diskBacked && chainVerification.valid && Boolean(persistedAudit?.id === appended.id);
     sqliteSteps.push({
       step: 'AUDIT_CHAIN_PERSISTENCE',
       passed: auditOk,
@@ -286,7 +284,8 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
       details: {
         audit_record_id: appended.id,
         merkle_chain_valid: chainVerification.valid,
-        chain_blocks: chainVerification.total_records
+        chain_blocks: chainVerification.total_records,
+        persisted_readback: Boolean(persistedAudit?.id === appended.id)
       }
     });
   } catch (err: any) {
@@ -316,12 +315,20 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
       status: 'VERIFIED'
     });
     const readback = sqlite.findTenantRecords('proof_evidence', 'TENANT_ALPHA');
-    evidenceOk = readback.some(b => b.bundle_id === testBundle.bundle_id && b.hash === testBundle.hash);
+    const persistedEvidence = db.get('SELECT id FROM proof_evidence WHERE id = ?', [testBundle.bundle_id]);
+    const persistedEvidenceReadback = diskBacked && persistedEvidence?.id === testBundle.bundle_id;
+    evidenceOk = diskBacked && readback.some(b => b.bundle_id === testBundle.bundle_id && b.hash === testBundle.hash) &&
+      persistedEvidence?.id === testBundle.bundle_id;
     sqliteSteps.push({
       step: 'EVIDENCE_PERSISTENCE',
       passed: evidenceOk,
       duration_ms: performance.now() - t8,
-      details: { bundle_id: testBundle.bundle_id, verified: evidenceOk }
+      details: {
+        bundle_id: testBundle.bundle_id,
+        verified: evidenceOk,
+        persisted_readback: persistedEvidenceReadback,
+        disk_backed: sqlite.isDiskBacked()
+      }
     });
   } catch (err: any) {
     sqliteSteps.push({

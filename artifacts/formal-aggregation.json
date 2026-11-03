@@ -1,7 +1,32 @@
 {
   "aggregation_name": "Z3_120_FORMAL_AGGREGATION",
-  "commit_sha": "d86e3000e980a4ba6363e99bb918a782de215d20",
-  "timestamp": "2026-10-22T14:06:56.345Z",
+  "commit_sha": "733e7f66a58bd7a54cb9c6d463de4f0404f9f602",
+  "source_commit_sha": "733e7f66a58bd7a54cb9c6d463de4f0404f9f602",
+  "verification_root_sha256": "a02dcad5a275eff60ee84c1ac6a9c91b2c5401665cfc7e11ac8e9d0ae13481ec",
+  "run_evidence_sha256": "04daa3e110520bd9cfd25b2b5cdf7c7cc63de2f7391942c2965fe1febf2c2360",
+  "sat_case_identities": {
+    "dfrl": {
+      "expected": [],
+      "observed": [],
+      "replayed": []
+    },
+    "dh": {
+      "expected": [
+        "DH-P-019",
+        "DH-P-031"
+      ],
+      "observed": [
+        "DH-P-019",
+        "DH-P-031"
+      ],
+      "replayed": [
+        "DH-P-019",
+        "DH-P-031"
+      ]
+    },
+    "identities_match": true
+  },
+  "timestamp": "2026-11-02T05:10:30.561Z",
   "dfrl": {
     "required": 88,
     "actual_z3_executions": 88,
@@ -11,21 +36,18 @@
     "sat_count": 0,
     "unknown_count": 0,
     "error_count": 0,
-    "root_hash": "8df44126e25bb506600d19a15a19337a32d3db9228f26fb6d2ffa36b2693a1a2",
+    "root_hash": "196594329da2041bca6745bfcc62510522a7e8696c72c88e0ca7a86da7311337",
     "status": "VERIFIED"
   },
   "dh": {
     "required": 32,
-    "formalized": 32,
     "actual_z3_executions": 32,
     "replays": 32,
     "replay_matches": 32,
-    "blocked": 0,
     "unsat_count": 30,
     "sat_count": 2,
     "unknown_count": 0,
     "error_count": 0,
-    "root_hash": "4e88a82f27813209437ad6bf2612186ae5ee0aa1c5587420e0b2ecf8c82fe0bc",
     "status": "VERIFIED"
   },
   "total": {
@@ -39,7 +61,6 @@
       "unknown": 0,
       "error": 0
     },
-    "combined_root_sha256": "b03f29a7af1c9d9ddc798a77e718eda2ce4deaba8dbdcd77619b9aee01893be3",
     "closure_verdict": "PROVEN_120_FORMAL_CLOSURE"
   }
 }

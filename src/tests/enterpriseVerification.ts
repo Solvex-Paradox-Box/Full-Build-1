@@ -223,13 +223,13 @@ export async function runEnterpriseVerification() {
     }
   });
 
-  // 11. Preserved Verified Solution DH-S-001
-  runTest('Preserved Solution DH-S-001 Verification Integrity', 'SOLUTIONS', () => {
+  // 11. A seeded solution is not verified without execution evidence.
+  runTest('Preserved Solution DH-S-001 Remains Partial Without Proof Evidence', 'SOLUTIONS', () => {
     SolutionPipeline.getInstance();
     const store = DurableStore.getInstance();
     const sol = store.getState().solutions['DH-S-001'];
     if (!sol) throw new Error('Preserved solution DH-S-001 missing from store');
-    if (sol.verification_status !== 'VERIFIED') throw new Error('DH-S-001 is not marked VERIFIED');
+    if (sol.verification_status !== 'PARTIAL') throw new Error('DH-S-001 must remain PARTIAL without proof evidence');
     if (!sol.reversibility_guaranteed) throw new Error('DH-S-001 must guarantee reversibility');
   });
 
@@ -261,14 +261,15 @@ export async function runEnterpriseVerification() {
     }
   });
 
-  // 14. 21-Stage Pipeline Full Execution
-  runTest('21-Stage Problem Resolution Pipeline Full Traversal', 'PIPELINE', () => {
+  // 14. Pipeline does not claim stage execution without implemented handlers.
+  runTest('21-Stage Pipeline Blocks Unimplemented Stage Handlers', 'PIPELINE', () => {
     const pipeline = SolutionPipeline.getInstance();
     const result = pipeline.runPipeline('DH-P-001', 'export function solve() { return true; }');
-    if (!result.overall_success) throw new Error(`Pipeline execution failed: ${result.rejection_reason}`);
-    if (result.completed_stages !== 21) {
-      throw new Error(`Expected exactly 21 completed stages, got ${result.completed_stages}`);
+    if (result.overall_success) throw new Error('Pipeline claimed success without stage handlers');
+    if (result.completed_stages !== 0 || result.total_stages !== 21) {
+      throw new Error(`Expected 0 of 21 stages completed, got ${result.completed_stages} of ${result.total_stages}`);
     }
+    if (!result.rejection_reason?.startsWith('BLOCKED:')) throw new Error('Pipeline did not report a fail-closed blocker');
   });
 
   // 15. Pipeline Fail-Closed Boundary Rejection

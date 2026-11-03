@@ -22,11 +22,13 @@ export class ExternalAdapterRegistry {
         adapter_id: 'DN-34',
         name: 'Neon Serverless PostgreSQL',
         category: 'DATABASE',
-        status: hasNeon ? 'AVAILABLE' : 'EXTERNAL_PROVIDER_REQUIRED',
+        status: hasNeon ? 'DEGRADED' : 'EXTERNAL_PROVIDER_REQUIRED',
         required_env_vars: ['NEON_DATABASE_URL'],
         provided_env_vars: hasNeon ? ['NEON_DATABASE_URL'] : [],
-        live_connected: hasNeon,
-        notes: 'When credentials not configured, local SQLite with 27-table schema and DurableStore WAL operates as zero-compromise deterministic fallback.'
+        live_connected: false,
+        notes: hasNeon
+          ? 'Connection, schema, and tenant-isolation checks have not been performed by this inventory.'
+          : 'Neon is not configured. Any local persistence fallback must be verified separately; configuration inventory does not establish durable storage.'
       },
       {
         adapter_id: 'DN-35',
@@ -45,7 +47,7 @@ export class ExternalAdapterRegistry {
         status: 'AVAILABLE',
         required_env_vars: [],
         provided_env_vars: [],
-        live_connected: true,
+        live_connected: false,
         notes: 'Stripe prohibited per Sovereign Security Directive. Fiat payments and escrow settle exclusively via PayPal DN-35.'
       },
       {

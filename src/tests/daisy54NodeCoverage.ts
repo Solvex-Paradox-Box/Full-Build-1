@@ -17,8 +17,8 @@ export interface NodeCoverageReport {
   results: SubsystemExecutionResult[];
   breakdown: {
     baseline_internal_18: SubsystemExecutionResult[];
-    expanded_internal_33: SubsystemExecutionResult[];
-    gateways_3: SubsystemExecutionResult[];
+    expanded_internal_34: SubsystemExecutionResult[];
+    gateways_2: SubsystemExecutionResult[];
   };
 }
 
@@ -36,7 +36,7 @@ export async function runDaisy54NodeCoverage(): Promise<NodeCoverageReport> {
   // External gateways: DN-34 (Neon), DN-35 (PayPal)
   const gatewayIds = ['DN-34', 'DN-35'];
 
-  // 34 expanded internal subsystems (including DN-19 through DN-33, DN-36, DN-37, DN-38 Sovereign Escrow, DN-39 through DN-54)
+  // 34 expanded internal subsystems, including the policy interlock DN-36.
   const baselineResults = rawResults.results.filter(r => baseline18Ids.includes(r.node_id));
   const gatewayResults = rawResults.results.filter(r => gatewayIds.includes(r.node_id));
   const expandedResults = rawResults.results.filter(r => !baseline18Ids.includes(r.node_id) && !gatewayIds.includes(r.node_id));
@@ -71,8 +71,8 @@ export async function runDaisy54NodeCoverage(): Promise<NodeCoverageReport> {
     results: rawResults.results,
     breakdown: {
       baseline_internal_18: baselineResults,
-      expanded_internal_33: expandedResults,
-      gateways_3: gatewayResults
+      expanded_internal_34: expandedResults,
+      gateways_2: gatewayResults
     }
   };
 }

@@ -33,6 +33,7 @@ export class ProductionStateService {
     if (!authConfigured) {
       blockers.push('Production OIDC issuer and signed-claim verification are not configured; auth remains fail-closed.');
     }
+    blockers.push('First-party OIDC token verification and signed tenant-claim enforcement are not implemented; authentication remains fail-closed.');
     if (!neonConfigured) {
       blockers.push('NEON_DATABASE_URL or DATABASE_URL is not configured; cloud persistence is unavailable.');
     }
@@ -47,7 +48,7 @@ export class ProductionStateService {
       status,
       environment,
       readiness,
-      authentication_enabled: !blockers.some(b => b.includes('OIDC')),
+      authentication_enabled: false,
       payments_enabled: false,
       neon_configured: neonConfigured,
       blockers

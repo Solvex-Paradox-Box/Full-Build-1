@@ -2,10 +2,128 @@ import fs from 'fs';
 import path from 'path';
 import cp from 'child_process';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { DFRLFormalVerifier } from '../src/proofs/DFRLFormalVerifier';
 import { DHFormalVerifier } from '../src/proofs/DHFormalVerifier';
 import { computeSha256 } from '../src/database/DatabaseSchema';
 import { REAL_88_PARADOX_REGISTRY } from '../src/data/paradoxData';
+import { AUTHORITATIVE_32_DH_CONTRACTS } from '../src/formal/dhAuthoritativeFormalContracts';
+import { DaisyActivationGate, DaisyActivationAuthorization } from '../src/brain/DaisyActivationGate';
+import type { DFRL88VerificationReport } from '../src/proofs/DFRLFormalVerifier';
+import type { DH32VerificationReport } from '../src/proofs/DHFormalVerifier';
+
+export interface FormalEvidenceValidation {
+  dfrlIds: string[];
+  dhIds: string[];
+  dfrlRootMatches: boolean;
+  dhRootMatches: boolean;
+  dfrlCasesValid: boolean;
+  dhCasesValid: boolean;
+  contractHashIntegrity: boolean;
+  sourceHashIntegrity: boolean;
+  replayIntegrity: boolean;
+}
+
+export function validateFormalEvidence(
+  dfrlReport: DFRL88VerificationReport | null | undefined,
+  dhReport: DH32VerificationReport | null | undefined,
+  commitSha: string,
+  readSource: (sourcePath: string) => string = sourcePath => fs.readFileSync(sourcePath, 'utf8')
+): FormalEvidenceValidation {
+  const invalid: FormalEvidenceValidation = {
+    dfrlIds: [], dhIds: [], dfrlRootMatches: false, dhRootMatches: false,
+    dfrlCasesValid: false, dhCasesValid: false, contractHashIntegrity: false,
+    sourceHashIntegrity: false, replayIntegrity: false
+  };
+  if (!dfrlReport || !dhReport || !Array.isArray(dfrlReport.results) ||
+    !Array.isArray(dfrlReport.replays) || !Array.isArray(dhReport.results) || !Array.isArray(dhReport.replays)) {
+    return invalid;
+  }
+
+  const dfrlIds = dfrlReport.results.map(r => r.operator_id || r.code || '');
+  const dhIds = dhReport.results.map(r => r.case_id || '');
+  const matchesIds = (observed: string[], expected: string[]) =>
+    observed.length === expected.length && new Set(observed).size === expected.length &&
+    expected.every(id => observed.includes(id));
+  const dfrlById = new Map(REAL_88_PARADOX_REGISTRY.map(item => [item.code, item]));
+  const dhById = new Map(AUTHORITATIVE_32_DH_CONTRACTS.map(item => [item.case_id, item]));
+  const expectedDfrlIds = REAL_88_PARADOX_REGISTRY.map(item => item.code);
+  const expectedDhIds = AUTHORITATIVE_32_DH_CONTRACTS.map(item => item.case_id);
+  const dfrlReplayById = new Map(dfrlReport.replays.map(replay => [replay.operator_id, replay]));
+  const dhReplayById = new Map(dhReport.replays.map(replay => [replay.case_id, replay]));
+  const dfrlRootMatches = dfrlReport.verification_root_sha256 === computeSha256(
+    dfrlReport.results.map(r => `${r.operator_id}:${r.actual_smt_assertion_hash}:${r.solver_result}:${r.certificate_sha256}`).join('|')
+  );
+  const dhRootMatches = dhReport.verification_root_sha256 === computeSha256(
+    dhReport.results.map(r => `${r.case_id}:${r.contract_hash}:${r.evidence_hash}:${r.actual_result}`).join('|')
+  );
+  const dfrlCasesValid = dfrlReport.results.length === 88 && matchesIds(dfrlIds, expectedDfrlIds) &&
+    dfrlReport.results.every(r => {
+      const id = r.operator_id || r.code || '';
+      const contract = dfrlById.get(id);
+      const replay = dfrlReplayById.get(id);
+      if (!contract || !replay) return false;
+      const assertionHash = computeSha256(contract.formal_invariant);
+      const smtHash = computeSha256(contract.z3_smt_assertion);
+      const certificateHash = computeSha256(`${id}:${contract.formal_invariant}:${smtHash}:${r.solver_result}:${r.execution_id}`);
+      return Boolean(r.execution_id && r.expected_solver_result === contract.expected_solver_result &&
+        r.assertion_hash === assertionHash && r.actual_smt_assertion_hash === smtHash &&
+        r.certificate_sha256 === certificateHash && r.solver_result === contract.expected_solver_result && r.proved &&
+        replay.replay_match && replay.original_result === r.solver_result && replay.replay_result === r.solver_result &&
+        replay.original_assertion_hash === smtHash && replay.replay_assertion_hash === smtHash &&
+        replay.original_evidence_hash === r.certificate_sha256 &&
+        replay.replay_evidence_hash === computeSha256(`${id}:${contract.formal_invariant}:${smtHash}:${replay.replay_result}`));
+    }) && dfrlReport.attempted === 88 && dfrlReport.executed === 88 &&
+    dfrlReport.replays.length === 88 && dfrlRootMatches;
+  const contractHashIntegrity = dhReport.results.length === 32 && matchesIds(dhIds, expectedDhIds) &&
+    dhReport.results.every(r => {
+      const contract = dhById.get(r.case_id);
+      if (!contract) return false;
+      const { contract_hash: _storedHash, ...canonicalContract } = contract;
+      const expectedHash = computeSha256(JSON.stringify(canonicalContract));
+      return r.contract_hash === contract.contract_hash && r.contract_hash === expectedHash;
+    });
+  const sourceHashIntegrity = dhReport.results.length === 32 && dhReport.results.every(r => {
+    const contract = dhById.get(r.case_id);
+    if (!contract || r.commit_sha !== commitSha) return false;
+    try {
+      const sourceContentHash = computeSha256(readSource(contract.source_file));
+      const sourceHash = computeSha256(`${contract.source_file}:${sourceContentHash}:${contract.contract_hash}:${commitSha}`);
+      return r.source_content_hash === sourceContentHash && r.source_hash === sourceHash;
+    } catch {
+      return false;
+    }
+  });
+  const replayIntegrity = dhReport.results.length === 32 && dhReport.replays.length === 32 &&
+    matchesIds(dhReport.replays.map(replay => replay.case_id), expectedDhIds) &&
+    dhReport.results.every(r => {
+      const replay = dhReplayById.get(r.case_id);
+      if (!replay) return false;
+      const expectedReplayEvidence = computeSha256(
+        `${r.case_id}:${replay.cleanroom_context_id}:${r.contract_hash}:${r.replay_result}:${commitSha}`
+      );
+      return Boolean(r.replay_match && r.replay_result === r.actual_result &&
+        replay.original_result === r.actual_result && replay.replay_result === r.actual_result && replay.replay_match &&
+        replay.original_evidence_hash === r.evidence_hash && replay.cleanroom_context_id.length > 0 &&
+        replay.replay_evidence_hash === expectedReplayEvidence);
+    });
+  const dhCasesValid = dhReport.results.length === 32 && matchesIds(dhIds, expectedDhIds) &&
+    dhReport.results.every(r => r.verified &&
+      r.actual_result === dhById.get(r.case_id)?.expected_result &&
+      r.expected_result === dhById.get(r.case_id)?.expected_result &&
+      r.replay_result === r.actual_result && r.replay_match &&
+      ['MODEL_VERIFIED', 'MODEL_VERIFIED_BOUNDED', 'MODEL_VERIFIED_AXIOMATIC'].includes(r.scope) &&
+      (r.actual_result === 'unsat' || r.actual_result === 'sat') &&
+      r.evidence_integrity === 'PASS' && r.source_integrity === 'PASS' && r.commit_sha === commitSha &&
+      r.evidence_hash === computeSha256(`${r.case_id}:${r.contract_hash}:${r.source_hash}:${r.actual_result}:${r.replay_result}:${commitSha}`) &&
+      /^[a-f0-9]{64}$/i.test(r.evidence_hash)) && dhReport.attempted === 32 && dhReport.executed === 32 && dhRootMatches;
+    const dhCasesWithIntegrity = dhCasesValid && contractHashIntegrity && sourceHashIntegrity && replayIntegrity;
+
+  return {
+      dfrlIds, dhIds, dfrlRootMatches, dhRootMatches, dfrlCasesValid, dhCasesValid: dhCasesWithIntegrity,
+    contractHashIntegrity, sourceHashIntegrity, replayIntegrity
+  };
+}
 
 async function main() {
   console.log('================================================================');
@@ -45,33 +163,23 @@ async function main() {
     r.proved && (r.solver_result === 'unsat' || r.solver_result === 'sat') && r.claim_scope === 'MODEL_VERIFIED'
   ).length;
   const totalExpectedMatches = dfrlExpectedMatches + dhReport.expected_result_matches;
-  const totalReplays = dfrlReport.replays.length + dhReport.results.length;
+  const totalReplays = dfrlReport.replays.length + dhReport.replays.length;
   const totalReplayMatches = dfrlReport.deterministic_replays_matched + dhReport.replay_matches;
   const totalUnknown = dfrlReport.unknown_count + dhReport.unknown_count;
   const totalError = dfrlReport.error_count + dhReport.error_count;
 
-  const dfrlIds = dfrlReport.results.map(r => r.operator_id || r.code);
-  const dhIds = dhReport.results.map(r => r.case_id);
-  const dfrlCasesValid = dfrlReport.results.length === 88 && new Set(dfrlIds).size === 88 &&
-    dfrlReport.results.every(r => r.proved && (r.solver_result === 'unsat' || r.solver_result === 'sat')) &&
-    dfrlReport.replays.length === 88 &&
-    dfrlReport.replays.every(r => r.replay_match &&
-      (r.original_result === 'unsat' || r.original_result === 'sat') &&
-      r.replay_result === r.original_result &&
-      r.original_assertion_hash === r.replay_assertion_hash);
-  const dhCasesValid = dhReport.results.length === 32 && new Set(dhIds).size === 32 &&
-    dhReport.results.every(r => r.verified &&
-      r.actual_result === r.expected_result &&
-      r.replay_result === r.actual_result &&
-      r.replay_match &&
-      ['MODEL_VERIFIED', 'MODEL_VERIFIED_BOUNDED', 'MODEL_VERIFIED_AXIOMATIC'].includes(r.scope) &&
-      (r.actual_result === 'unsat' || r.actual_result === 'sat') &&
-      r.evidence_integrity === 'PASS' &&
-      r.source_integrity === 'PASS' &&
-      typeof r.contract_hash === 'string' && /^[a-f0-9]{64}$/i.test(r.contract_hash) &&
-      typeof r.source_hash === 'string' && /^[a-f0-9]{64}$/i.test(r.source_hash) &&
-      typeof r.source_content_hash === 'string' && /^[a-f0-9]{64}$/i.test(r.source_content_hash) &&
-      typeof r.evidence_hash === 'string' && /^[a-f0-9]{64}$/i.test(r.evidence_hash));
+  const validation = validateFormalEvidence(dfrlReport, dhReport, commitSha);
+  const {
+    dfrlIds,
+    dhIds,
+    dfrlRootMatches,
+    dhRootMatches,
+    dfrlCasesValid,
+    dhCasesValid,
+    contractHashIntegrity,
+    sourceHashIntegrity,
+    replayIntegrity
+  } = validation;
 
   // Bind this run to the exact checkout and preserve expected SAT case identities.
   const dfrlRootSha256 = dfrlReport.verification_root_sha256;
@@ -81,20 +189,6 @@ async function main() {
     source_commit_sha: commitSha,
     dfrl_root_sha256: dfrlRootSha256,
     dh_root_sha256: dhRootSha256
-  }));
-  const runEvidenceSha256 = computeSha256(JSON.stringify({
-    schema: 'SOLVEX_DAISY_FORMAL_RUN_RECEIPT_V1',
-    source_commit_sha: commitSha,
-    dfrl_execution_id: dfrlReport.execution_id,
-    dfrl_timestamp: dfrlReport.timestamp,
-    dh_execution_id: dhReport.execution_id,
-    dh_timestamp: dhReport.timestamp,
-    dfrl_root_sha256: dfrlRootSha256,
-    dh_root_sha256: dhRootSha256,
-    expected_matches: totalExpectedMatches,
-    replay_matches: totalReplayMatches,
-    unknown: totalUnknown,
-    errors: totalError
   }));
   const expectedDfrlSatCaseIds = REAL_88_PARADOX_REGISTRY.filter(r => r.expected_solver_result === 'sat').map(r => r.code).sort();
   const observedDfrlSatCaseIds = dfrlReport.results.filter(r => r.solver_result === 'sat').map(r => r.operator_id || r.code || '').sort();
@@ -110,14 +204,38 @@ async function main() {
   const passed120 = satIdentityMatches && totalZ3Executions === 120 && totalExpectedMatches === 120 &&
     totalReplays === 120 && totalReplayMatches === 120 && totalUnknown === 0 && totalError === 0 &&
     dfrlReport.overall_status === 'VERIFIED' && dhReport.overall_status === 'VERIFIED' &&
-    dhReport.blocked_count === 0 && dfrlCasesValid && dhCasesValid;
+    dhReport.blocked_count === 0 && dfrlCasesValid && dhCasesValid &&
+    contractHashIntegrity && sourceHashIntegrity && replayIntegrity;
 
   console.log('\n[STAGE 3] Adversarial mutation / fail-closed checks...');
   const mutation = await dfrlVerifier.runSmtMutationTest();
   const fault = await dfrlVerifier.runZ3FailureInjectionTest();
   const tamper = dfrlVerifier.runArtifactTamperTest(dfrlReport);
-  const adversarialOk = mutation.passed && fault.passed && tamper.passed;
-  console.log(` -> Mutation: ${mutation.passed} Fault: ${fault.passed} Tamper: ${tamper.passed}`);
+  const dhMutation = await dhVerifier.runSmtMutationTest();
+  const dhFault = await dhVerifier.runFailureInjectionTest();
+  const dhTamper = dhVerifier.runArtifactTamperTest(dhReport);
+  const adversarialOk = mutation.passed && fault.passed && tamper.passed &&
+    dhMutation.passed && dhFault.passed && dhTamper.passed &&
+    contractHashIntegrity && sourceHashIntegrity && replayIntegrity;
+  const runEvidenceSha256 = computeSha256(JSON.stringify({
+    schema: 'SOLVEX_DAISY_FORMAL_RUN_RECEIPT_V2',
+    source_commit_sha: commitSha,
+    dfrl_execution_id: dfrlReport.execution_id,
+    dfrl_timestamp: dfrlReport.timestamp,
+    dh_execution_id: dhReport.execution_id,
+    dh_timestamp: dhReport.timestamp,
+    dfrl_root_sha256: dfrlRootSha256,
+    dh_root_sha256: dhRootSha256,
+    expected_matches: totalExpectedMatches,
+    replay_matches: totalReplayMatches,
+    unknown: totalUnknown,
+    errors: totalError,
+    adversarial: { mutation, fault, tamper, dhMutation, dhFault, dhTamper },
+    integrity: { contractHashIntegrity, sourceHashIntegrity, replayIntegrity }
+  }));
+  console.log(` -> DFRL mutation/fault/tamper: ${mutation.passed}/${fault.passed}/${tamper.passed}`);
+  console.log(` -> DH mutation/fault/tamper:   ${dhMutation.passed}/${dhFault.passed}/${dhTamper.passed}`);
+  console.log(` -> DH contract/source/replay integrity: ${contractHashIntegrity}/${sourceHashIntegrity}/${replayIntegrity}`);
 
   console.log('[120-GATE-DIAGNOSTICS]', JSON.stringify({
     totalZ3Executions,
@@ -141,6 +259,9 @@ async function main() {
     dhUniqueIds: new Set(dhIds).size,
     dfrlCasesValid,
     dhCasesValid,
+    contractHashIntegrity,
+    sourceHashIntegrity,
+    replayIntegrity,
     passed120,
     adversarialOk
   }));
@@ -209,24 +330,42 @@ async function main() {
     console.warn('System46Gates isolated process not completed; activation remains BLOCKED:', e?.message || e);
   }
 
+  let activationAuthorization: DaisyActivationAuthorization | undefined;
+  const activationAuthorizationPath = path.join(outDir, 'daisy-activation-authorization.json');
+  if (fs.existsSync(activationAuthorizationPath)) {
+    try {
+      activationAuthorization = JSON.parse(fs.readFileSync(activationAuthorizationPath, 'utf8')) as DaisyActivationAuthorization;
+    } catch {}
+  }
+  const activationAuthorizationValid = Boolean(activationAuthorization &&
+    DaisyActivationGate.verifyAuthorization(
+      activationAuthorization,
+      commitSha,
+      combinedRootSha256,
+      runEvidenceSha256
+    ));
   const brainActive =
     passed120 &&
     satIdentityMatches &&
     adversarialOk &&
     gatesTotal > 0 &&
     gatesPassed === gatesTotal &&
-    gatesFailed === 0;
+    gatesFailed === 0 &&
+    activationAuthorizationValid;
 
   const activationGate = {
     schema_version: '1.0.0',
     status: brainActive ? 'ACTIVE' : 'BLOCKED',
     reason: brainActive
-      ? '120/120 formal corpus and adversarial checks passed; all 46 system gates are PASSED.'
-      : 'Activation blocked until formal corpus, adversarial checks, and all 46 system gates pass; no provider or blocked gate may be excluded.',
+      ? 'Formal, adversarial, 46-gate, and signed human-root authorization evidence passed.'
+      : activationAuthorizationValid
+        ? 'Activation blocked until formal corpus, adversarial checks, and all 46 system gates pass; no provider or blocked gate may be excluded.'
+        : 'Activation blocked: fresh signed human-root authorization for this source commit and run evidence is unavailable or invalid.',
     commit_sha: commitSha,
     source_commit_sha: commitSha,
     verification_root_sha256: combinedRootSha256,
     run_evidence_sha256: runEvidenceSha256,
+    activation_authorization: activationAuthorization ?? null,
     timestamp: new Date().toISOString(),
     corpus: {
       total_required: 120,
@@ -245,7 +384,13 @@ async function main() {
       passed: adversarialOk,
       dfrl_mutation: mutation.passed,
       dfrl_failure_injection: fault.passed,
-      dfrl_tamper_alarm: tamper.passed
+      dfrl_tamper_alarm: tamper.passed,
+      dh_smt_mutation: dhMutation.passed,
+      dh_failure_injection: dhFault.passed,
+      dh_artifact_tamper: dhTamper.passed,
+      contract_hash_integrity: contractHashIntegrity,
+      source_hash_integrity: sourceHashIntegrity,
+      replay_integrity: replayIntegrity
     },
     mandatory_gates: {
       total: 46,
@@ -276,6 +421,7 @@ async function main() {
       dh: { expected: expectedDhSatCaseIds, observed: observedDhSatCaseIds, replayed: replayedDhSatCaseIds },
       identities_match: satIdentityMatches
     },
+    integrity_checks: { contractHashIntegrity, sourceHashIntegrity, replayIntegrity },
     timestamp: new Date().toISOString(),
     dfrl: {
       required: 88, actual_z3_executions: dfrlReport.executed,
@@ -286,7 +432,7 @@ async function main() {
     },
     dh: {
       required: 32, actual_z3_executions: dhReport.executed,
-      replays: dhReport.results.length, replay_matches: dhReplayMatches,
+      replays: dhReport.replays.length, replay_matches: dhReplayMatches,
       unsat_count: dhReport.unsat_count, sat_count: dhReport.sat_count,
       unknown_count: dhReport.unknown_count, error_count: dhReport.error_count,
       status: dhReport.overall_status
@@ -311,6 +457,7 @@ async function main() {
       dh: { expected: expectedDhSatCaseIds, observed: observedDhSatCaseIds, replayed: replayedDhSatCaseIds },
       identities_match: satIdentityMatches
     },
+    integrity_checks: { contractHashIntegrity, sourceHashIntegrity, replayIntegrity },
     timestamp: new Date().toISOString(),
     total_z3_executions: totalZ3Executions,
     expected_result_matches: totalExpectedMatches,
@@ -362,7 +509,8 @@ async function main() {
           dfrlCasesValid,
           dhCasesValid
         },
-        adversarial: { mutation, fault, tamper },
+        adversarial: { mutation, fault, tamper, dhMutation, dhFault, dhTamper },
+        integrity_checks: { contractHashIntegrity, sourceHashIntegrity, replayIntegrity },
         activation_gate: activationGate
       },
       null,
@@ -413,26 +561,29 @@ async function main() {
   process.exit(formalOk ? 0 : 1);
 }
 
-main().catch((e) => {
-  console.error(e);
-  try {
-    const outDir = path.join(process.cwd(), 'artifacts');
-    fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(outDir, 'daisy-brain-activation-gate.json'),
-      JSON.stringify(
-        {
-          schema_version: '1.0.0',
-          status: 'BLOCKED',
-          reason: `verify_120 crashed: ${e?.message || String(e)}`,
-          timestamp: new Date().toISOString()
-        },
-        null,
-        2
-      )
-    );
-  } catch {
-    /* ignore */
-  }
-  process.exit(1);
-});
+const isDirectExecution = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+if (isDirectExecution) {
+  main().catch((e) => {
+    console.error(e);
+    try {
+      const outDir = path.join(process.cwd(), 'artifacts');
+      fs.mkdirSync(outDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(outDir, 'daisy-brain-activation-gate.json'),
+        JSON.stringify(
+          {
+            schema_version: '1.0.0',
+            status: 'BLOCKED',
+            reason: `verify_120 crashed: ${e?.message || String(e)}`,
+            timestamp: new Date().toISOString()
+          },
+          null,
+          2
+        )
+      );
+    } catch {
+      /* ignore */
+    }
+    process.exit(1);
+  });
+}

@@ -20,7 +20,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.24124099999971804,
+      "duration_ms": 0.08815400000003137,
       "evidence": {
         "genesis_root": "b17ad6280d9a9b62314559999b7879c9a2adf583ef95fabfec5f97e064c13ae0",
         "state": "INITIALIZED"
@@ -39,9 +39,9 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.06536299999970652,
+      "duration_ms": 0.03701900000032765,
       "evidence": {
-        "token_prefix": "22444e34b1429393",
+        "token_prefix": "4faf1d8c067de6a4",
         "permitted": true
       },
       "registered": true,
@@ -49,7 +49,7 @@
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "109025f51012ccfd035a95af7a7aee414b96446eab876efdea4ac9ddaf8dac93"
+      "evidence_hash": "688376443780629f01954b1f05469b850313b6e6cdef398c1778c19337388d93"
     },
     {
       "node_id": "DN-03",
@@ -58,17 +58,17 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.5495699999992212,
+      "duration_ms": 540.1676179999995,
       "evidence": {
         "solver_result": "unsat",
-        "cert_hash": "4010dc8084668912594ad6de0a3011acdfff66adefae0767b99bbe4e20199166"
+        "cert_hash": "4a3bcb3c5e406884e11b4f0d5a5dfa2b65ae8676a09aaa10d7429bc4efb2fc18"
       },
       "registered": true,
       "instantiated": true,
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "dc674873bca1ae0ffd6b4caa8c173586a7c3cb856008aaf5ab087946162117e5"
+      "evidence_hash": "3df51791fcc64207ba3d98d62b0b598e4cb24f69a1d9c2195674a27fb0489652"
     },
     {
       "node_id": "DN-04",
@@ -77,7 +77,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.16278799999963667,
+      "duration_ms": 0.15677299999970273,
       "evidence": {
         "steps": 7,
         "bound": 100
@@ -95,18 +95,15 @@
       "category": "AUDIT",
       "executed": true,
       "claim_scope": "LOCAL",
-      "status": "SUCCESS",
-      "duration_ms": 0.08161899999868183,
-      "evidence": {
-        "token": "ef0449411334b8694777b1c673bee41d52118819d9ecde302b9920fcf1a236ae",
-        "redacted": true
-      },
+      "status": "FAIL_CLOSED",
+      "duration_ms": 0.027492000000165717,
+      "evidence": {},
       "registered": true,
       "instantiated": true,
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "77429eb590da7838ab736e1c007a354832d3fb01cb861b8bdb76363bcd948108"
+      "evidence_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
     },
     {
       "node_id": "DN-06",
@@ -115,9 +112,9 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.785556999999244,
+      "duration_ms": 0.42117599999983213,
       "evidence": {
-        "record_hash": "6b1a77eaca5d700c829e80b0d5e616334870bd42e101950b17250d73564db37c",
+        "record_hash": "e59f6344c9ae32cc775671e81d7f72c04c9f34f03144d1cb9ed43f3f30c1f888",
         "chain_valid": true
       },
       "registered": true,
@@ -125,7 +122,7 @@
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "ef4942a9063c55c2c9e45d6b46d2eab3e79de670e853af5220fed7ec6d8dde4f"
+      "evidence_hash": "211d94f8957f5c87eeaa0288fca0fe3d48b481a29b640345e38fa392b0b762f6"
     },
     {
       "node_id": "DN-07",
@@ -134,7 +131,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.5246870000009949,
+      "duration_ms": 0.30534999999963475,
       "evidence": {
         "mutation_alarm_tripped": true
       },
@@ -152,9 +149,9 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.0790160000015021,
+      "duration_ms": 0.0645700000004581,
       "evidence": {
-        "checkpoint_id": "chk_1792683111761_cwsm",
+        "checkpoint_id": "chk_1793596225248_xav8",
         "type": "ATOMIC_DATABASE_RESTORE"
       },
       "registered": true,
@@ -162,7 +159,7 @@
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "8b9a6a73225aab2ae6411b22efaec56c92a2bdb4b87c2990e184f6eeeff3d38c"
+      "evidence_hash": "c96fdadaa4cf3b608a0ec65fad0c070732dc64d883e157114039d8bae2ddc8f0"
     },
     {
       "node_id": "DN-09",
@@ -171,7 +168,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.4514470000012807,
+      "duration_ms": 1.291690999999446,
       "evidence": {
         "rollback_success": true
       },
@@ -189,7 +186,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.40497099999993225,
+      "duration_ms": 0.5077689999998256,
       "evidence": {
         "blocked_illegal_rollback": true
       },
@@ -207,7 +204,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.09723000000121829,
+      "duration_ms": 0.07165299999996932,
       "evidence": {
         "completed_stages": 21,
         "success": true
@@ -226,7 +223,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.03726800000004005,
+      "duration_ms": 0.027040999999371707,
       "evidence": {
         "circuit_tripped": true,
         "stopped_at_stage": 8
@@ -245,7 +242,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.0680579999989277,
+      "duration_ms": 0.04326099999980215,
       "evidence": {
         "price_cents": 25313,
         "hash": "9088b2beaae867b42907c99400577858354c5919861286a9317cbdf1e6210774"
@@ -264,7 +261,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.00926199999958044,
+      "duration_ms": 0.011360999999851629,
       "evidence": {
         "publication_blocked": true
       },
@@ -282,7 +279,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.0500609999999142,
+      "duration_ms": 0.03309099999933096,
       "evidence": {
         "isolated": true
       },
@@ -295,22 +292,24 @@
     },
     {
       "node_id": "DN-16",
-      "name": "RBAC Token Mint & Validator",
+      "name": "RBAC Token Boundary (Fail-Closed Until OIDC)",
       "category": "SECURITY",
       "executed": true,
       "claim_scope": "LOCAL",
-      "status": "SUCCESS",
-      "duration_ms": 0.16957899999943038,
+      "status": "FAIL_CLOSED",
+      "duration_ms": 0.08707199999935256,
       "evidence": {
-        "role": "ADMIN",
-        "valid": true
+        "local_token_mint_blocked": true,
+        "untrusted_token_rejected": true,
+        "authorization_mode": "TRUSTED_OIDC_REQUIRED",
+        "mint_error": "BLOCKED: local token issuance is disabled; use the approved OIDC issuer."
       },
       "registered": true,
       "instantiated": true,
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "6db628e6a79ee770c9fb1502cbcb5fe2d587e45445f2692fd3ba0f175b40130f"
+      "evidence_hash": "60bdd18345560e8aea4cf32010a26b2058c7726efcee96844e6b988cb819edad"
     },
     {
       "node_id": "DN-17",
@@ -319,7 +318,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.06403399999908288,
+      "duration_ms": 0.06259700000009616,
       "evidence": {
         "replay_rejected": true
       },
@@ -337,7 +336,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.04839700000047742,
+      "duration_ms": 0.025637999999162275,
       "evidence": {
         "deterministic": true,
         "digest": "4db134a2ae06aef1c0ec283ce3f807f001e1d82d21efe2f55d77329d8ab33be8"
@@ -356,7 +355,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.04969299999902432,
+      "duration_ms": 0.023645000000215077,
       "evidence": {
         "bitrot_detected": false,
         "digest": "ad27dfdaa03ae34127357f9d2bed21b5ae0626534b551f4429cbf4627c0e37ce"
@@ -375,7 +374,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.008282999999210006,
+      "duration_ms": 0.007374000000709202,
       "evidence": {
         "paradox_resolved": "DH-P-001",
         "status": "VERIFIED"
@@ -394,7 +393,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.15839299999970535,
+      "duration_ms": 536.6645199999994,
       "evidence": {
         "theorem": "THM-RUSSELL-01",
         "result": "unsat"
@@ -413,7 +412,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.13001799999983632,
+      "duration_ms": 851.7729660000005,
       "evidence": {
         "theorem": "THM-BARBER-02",
         "result": "unsat"
@@ -432,7 +431,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.10973500000000058,
+      "duration_ms": 648.462626999999,
       "evidence": {
         "theorem": "THM-CURRY-04",
         "result": "unsat"
@@ -451,7 +450,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.13106100000004517,
+      "duration_ms": 568.0784150000018,
       "evidence": {
         "theorem": "THM-ZENO-ARCHIMEDEAN-06",
         "result": "unsat"
@@ -470,7 +469,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.03842399999848567,
+      "duration_ms": 0.050815000000511645,
       "evidence": {
         "well_ordered": true
       },
@@ -488,7 +487,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.11537599999974191,
+      "duration_ms": 780.2441340000005,
       "evidence": {
         "theorem": "THM-LIAR-03",
         "result": "unsat"
@@ -507,7 +506,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.10962400000062189,
+      "duration_ms": 0.14848700000038662,
       "evidence": {
         "termination_proved": true
       },
@@ -520,22 +519,25 @@
     },
     {
       "node_id": "DN-28",
-      "name": "Order State Machine Orchestrator",
+      "name": "Order Lifecycle Authorization Gate (Fail-Closed)",
       "category": "MARKETPLACE",
       "executed": true,
       "claim_scope": "LOCAL",
-      "status": "SUCCESS",
-      "duration_ms": 0.4655410000013944,
+      "status": "FAIL_CLOSED",
+      "duration_ms": 5.584804999998596,
       "evidence": {
-        "valid_transition": true,
-        "invalid_transition_rejected": true
+        "unauthenticated_transition_rejected": true,
+        "order_state_unchanged": true,
+        "persisted_order_status": "OFFER",
+        "authorization_reason": "BLOCKED: verified identity and signed tenant claims are required.",
+        "payment_processing": "DISABLED"
       },
       "registered": true,
       "instantiated": true,
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "859bd276f9998c14e2cacf724371a0cca160e49c9342c56129ffefb893fedc13"
+      "evidence_hash": "34938830421d3d0a691c5b2a9855e00876ef05d687232266141fb66c5412529c"
     },
     {
       "node_id": "DN-29",
@@ -544,7 +546,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.01085600000078557,
+      "duration_ms": 0.011682000000291737,
       "evidence": {
         "solution_id": "DH-S-001",
         "status": "VERIFIED"
@@ -563,7 +565,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.028652999999394524,
+      "duration_ms": 0.014005999999426422,
       "evidence": {
         "oracle_signature": "5c7551ad400635db6a30fb4efbce27933149ad50f1c921e6799e3a2fc56ccef4"
       },
@@ -581,7 +583,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.027213000001211185,
+      "duration_ms": 0.11547499999869615,
       "evidence": {
         "table_count": 27
       },
@@ -599,16 +601,16 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.1151030000000901,
+      "duration_ms": 0.063758999998754,
       "evidence": {
-        "wal_hash": "573997f21a9ad632426140aa585b3eb293be0e6276286252e74712b739d3cea1"
+        "wal_hash": "61526ba3b4ffd11515cc0f7fd8be54cb3e2afbc35c0e421c89bee2041967c5b7"
       },
       "registered": true,
       "instantiated": true,
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "a5bebac28c90ca3123b4c4630d8d9a859173438f3aa67083f7ac15e59b0cd82d"
+      "evidence_hash": "8828c5f2ba750e513258ec8ce7d12c9bab292867d31a3114517105d75d606824"
     },
     {
       "node_id": "DN-33",
@@ -617,9 +619,9 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.7655160000012984,
+      "duration_ms": 2.9963239999997313,
       "evidence": {
-        "diversion_id": "fail_1792683111767_61th",
+        "diversion_id": "fail_1793596228643_gus5",
         "fail_closed": true
       },
       "registered": true,
@@ -627,20 +629,20 @@
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "474da5315746694b6f37736dc2a7fbeff2169e1edebf50be0466c456bc1b6e98"
+      "evidence_hash": "d89202c338831146666fa6e39ca3f014c2887a1eebeb2602619c8e19f26c72de"
     },
     {
       "node_id": "DN-34",
       "name": "Neon Postgres Adapter",
       "category": "ADAPTERS",
       "executed": true,
-      "claim_scope": "PRODUCTION",
-      "status": "SUCCESS",
-      "duration_ms": 682.503224,
+      "claim_scope": "LOCAL",
+      "status": "PROVIDER_REQUIRED",
+      "duration_ms": 0.3155590000005759,
       "evidence": {
-        "configured": true,
+        "configured": false,
         "backend": "PERSISTENCE_UNAVAILABLE",
-        "fallback_active": false,
+        "fallback_active": true,
         "tables_verified": 0
       },
       "registered": true,
@@ -648,7 +650,7 @@
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "a605dea355b8c4ba368b1dbac033f0e948605b348913f9a0832b6ddd753f8de2"
+      "evidence_hash": "c6aa82b9ee2d133f3d80147cfc174bfc9f806182fdbf0b8308438e9f70f37f87"
     },
     {
       "node_id": "DN-35",
@@ -656,13 +658,13 @@
       "category": "PAYMENTS",
       "executed": true,
       "claim_scope": "SANDBOX",
-      "status": "SUCCESS",
-      "duration_ms": 381.06887300000017,
+      "status": "FAIL_CLOSED",
+      "duration_ms": 0.12547400000039488,
       "evidence": {
-        "configured": true,
+        "configured": false,
         "environment": "sandbox",
-        "client_id_prefix": "AUVq...gEQ6",
-        "authenticated": true,
+        "client_id_prefix": "NOT_CONFIGURED",
+        "authenticated": false,
         "fail_closed_enforced": true
       },
       "registered": true,
@@ -670,7 +672,7 @@
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "cc1377d6cc4c16c859ee46ff56863faef5494e68a5bf781fb241201f240ff131"
+      "evidence_hash": "937ba89c0cfd817624c9bf7cbd0f164e39767d38407511e35df13212f8625fa7"
     },
     {
       "node_id": "DN-36",
@@ -679,7 +681,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "PROHIBITED_BLOCKED",
-      "duration_ms": 0.011930000000575092,
+      "duration_ms": 0.012633000000278116,
       "evidence": {
         "directive": "SOVEREIGN_DIRECTIVE_STRIPE_PROHIBITED",
         "enforced": true,
@@ -700,7 +702,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "PROVIDER_REQUIRED",
-      "duration_ms": 0.026632999999492313,
+      "duration_ms": 0.01657100000011269,
       "evidence": {
         "configured": false,
         "fail_closed": true
@@ -719,11 +721,11 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.07213899999987916,
+      "duration_ms": 0.05163600000014412,
       "evidence": {
-        "escrow_id": "escrow_sov_1792683112831",
+        "escrow_id": "escrow_sov_1793596228646",
         "settlement_engine": "SOVEREIGN_CRYPTOGRAPHIC_ESCROW",
-        "escrow_hash": "8c7f393da5fe550849613b2df846de85551e1eb3e4875791ac05ca3ea447735c",
+        "escrow_hash": "e044784b5c3eaa3737f2a2b61f1e588aaf92211ec84e9c19062369b90f22599e",
         "timelock_enforced": true,
         "multisig_verified": true,
         "fail_closed": true
@@ -733,7 +735,7 @@
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "6bb82599d7e99c316c651d4d87fba01fa297774c04e7c3e48ba6f8f34f58b288"
+      "evidence_hash": "a9f4ac84b27ed98d825387ed659170b1a84a018bd2985e49ee9da470f9fc570c"
     },
     {
       "node_id": "DN-39",
@@ -742,7 +744,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "PROVIDER_REQUIRED",
-      "duration_ms": 0.009363999999550288,
+      "duration_ms": 0.01016899999922316,
       "evidence": {
         "configured": false,
         "fail_closed": true
@@ -761,7 +763,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.02557900000101654,
+      "duration_ms": 0.01650100000006205,
       "evidence": {
         "kernel": "Lean4_Type_Theory",
         "cert_digest": "29c7e0f6a80e770b2acdb373ca1858d5f2307cbc44b6a65ae185db6e213a7e9a",
@@ -781,7 +783,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.03478999999970256,
+      "duration_ms": 0.015638999999282532,
       "evidence": {
         "logic": "Higher_Order_Logic",
         "cert_digest": "cc99c1f441f67ee39e30b56f8595ace1c902efa15df9c9034a72b496808adae4",
@@ -801,7 +803,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.025906999999278923,
+      "duration_ms": 0.012934000000313972,
       "evidence": {
         "calculus": "Inductive_Constructions",
         "cert_digest": "36795d02117f78a894fea72e13697df13ffbf578079244e7dd3c823e49aefe49",
@@ -821,7 +823,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.07955700000093202,
+      "duration_ms": 0.06826700000056007,
       "evidence": {
         "plan_stages": 3,
         "graph": [
@@ -856,7 +858,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.21666300000106276,
+      "duration_ms": 991.0115509999996,
       "evidence": {
         "theorem": "THM-PIGEONHOLE-08",
         "result": "unsat"
@@ -875,7 +877,7 @@
       "executed": true,
       "claim_scope": "MODEL",
       "status": "SUCCESS",
-      "duration_ms": 0.009342999999716994,
+      "duration_ms": 0.008135000000038417,
       "evidence": {
         "impossibility_enforced": true,
         "common_knowledge_lossy_bound": "UNSAT"
@@ -894,7 +896,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.05283400000007532,
+      "duration_ms": 0.052016999999978,
       "evidence": {
         "consistent_cut_digest": "332be9a5813bc6e29b1eee363f6ec28b72ec80d979325d1c51871388e4498868"
       },
@@ -912,7 +914,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.020330000001195003,
+      "duration_ms": 0.018365000001722365,
       "evidence": {
         "current_term": 1,
         "leader": "NODE_DAISY_LEADER",
@@ -932,7 +934,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.01238999999986845,
+      "duration_ms": 0.01136199999928067,
       "evidence": {
         "vector_clock": {
           "N1": 2,
@@ -955,7 +957,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.04245699999955832,
+      "duration_ms": 0.050815000000511645,
       "evidence": {
         "license_key": "LIC-636627703D38586A82DB3773632954D5"
       },
@@ -973,9 +975,9 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.13153499999862106,
+      "duration_ms": 0.14169399999991583,
       "evidence": {
-        "heap_used_bytes": 25321384,
+        "heap_used_bytes": 39934904,
         "telemetry_online": true
       },
       "registered": true,
@@ -983,7 +985,7 @@
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "ecedd20b44366a36896ef2d285d379ae139cb6b449c25ac7ae12cd0ac91d6d3d"
+      "evidence_hash": "4510b6e6b8b1d4c56a2b80d80519f67a5434139712835392ff8775f11b827ce8"
     },
     {
       "node_id": "DN-51",
@@ -992,7 +994,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.029338000000279862,
+      "duration_ms": 0.017362999999022577,
       "evidence": {
         "hsm_attestation_hash": "0b190736a0dabe8752e6d8e0817a53a262d219dcb639b79f7a412fa1606d02b1"
       },
@@ -1010,7 +1012,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.029328000000532484,
+      "duration_ms": 0.018624000000272645,
       "evidence": {
         "signature": "34efc0333300290fe31c887a145f99270dbc4362bbf730bbe4f635ea745c59fe",
         "verified": true
@@ -1029,7 +1031,7 @@
       "executed": true,
       "claim_scope": "LOCAL",
       "status": "SUCCESS",
-      "duration_ms": 0.0378099999998085,
+      "duration_ms": 0.010339000000385568,
       "evidence": {
         "in_range": true,
         "commitment": "4b97f1959fa3870bada76f04f01e822bf995b0863ae7800dbb88e538c1fd7b64"
@@ -1047,18 +1049,18 @@
       "category": "CORE_KERNEL",
       "executed": true,
       "claim_scope": "LOCAL",
-      "status": "SUCCESS",
-      "duration_ms": 0.9169770000007702,
+      "status": "FAIL_CLOSED",
+      "duration_ms": 0.5443060000015976,
       "evidence": {
-        "http_status": 200,
-        "health": "HEALTHY"
+        "http_status": 503,
+        "health": "blocked"
       },
       "registered": true,
       "instantiated": true,
       "reachable": true,
       "output_asserted": true,
       "evidence_generated": true,
-      "evidence_hash": "78094f57b039040c8644d70c9f44fbf993f4c87810e84adc66afc349ba95d1cb"
+      "evidence_hash": "18c3a1341de1c673eea7d292af09477b156d57680db5d654eadfcfc0a15742eb"
     }
   ],
   "breakdown": {
@@ -1070,7 +1072,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.24124099999971804,
+        "duration_ms": 0.08815400000003137,
         "evidence": {
           "genesis_root": "b17ad6280d9a9b62314559999b7879c9a2adf583ef95fabfec5f97e064c13ae0",
           "state": "INITIALIZED"
@@ -1089,9 +1091,9 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.06536299999970652,
+        "duration_ms": 0.03701900000032765,
         "evidence": {
-          "token_prefix": "22444e34b1429393",
+          "token_prefix": "4faf1d8c067de6a4",
           "permitted": true
         },
         "registered": true,
@@ -1099,7 +1101,7 @@
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "109025f51012ccfd035a95af7a7aee414b96446eab876efdea4ac9ddaf8dac93"
+        "evidence_hash": "688376443780629f01954b1f05469b850313b6e6cdef398c1778c19337388d93"
       },
       {
         "node_id": "DN-03",
@@ -1108,17 +1110,17 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.5495699999992212,
+        "duration_ms": 540.1676179999995,
         "evidence": {
           "solver_result": "unsat",
-          "cert_hash": "4010dc8084668912594ad6de0a3011acdfff66adefae0767b99bbe4e20199166"
+          "cert_hash": "4a3bcb3c5e406884e11b4f0d5a5dfa2b65ae8676a09aaa10d7429bc4efb2fc18"
         },
         "registered": true,
         "instantiated": true,
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "dc674873bca1ae0ffd6b4caa8c173586a7c3cb856008aaf5ab087946162117e5"
+        "evidence_hash": "3df51791fcc64207ba3d98d62b0b598e4cb24f69a1d9c2195674a27fb0489652"
       },
       {
         "node_id": "DN-04",
@@ -1127,7 +1129,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.16278799999963667,
+        "duration_ms": 0.15677299999970273,
         "evidence": {
           "steps": 7,
           "bound": 100
@@ -1145,18 +1147,15 @@
         "category": "AUDIT",
         "executed": true,
         "claim_scope": "LOCAL",
-        "status": "SUCCESS",
-        "duration_ms": 0.08161899999868183,
-        "evidence": {
-          "token": "ef0449411334b8694777b1c673bee41d52118819d9ecde302b9920fcf1a236ae",
-          "redacted": true
-        },
+        "status": "FAIL_CLOSED",
+        "duration_ms": 0.027492000000165717,
+        "evidence": {},
         "registered": true,
         "instantiated": true,
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "77429eb590da7838ab736e1c007a354832d3fb01cb861b8bdb76363bcd948108"
+        "evidence_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
       },
       {
         "node_id": "DN-06",
@@ -1165,9 +1164,9 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.785556999999244,
+        "duration_ms": 0.42117599999983213,
         "evidence": {
-          "record_hash": "6b1a77eaca5d700c829e80b0d5e616334870bd42e101950b17250d73564db37c",
+          "record_hash": "e59f6344c9ae32cc775671e81d7f72c04c9f34f03144d1cb9ed43f3f30c1f888",
           "chain_valid": true
         },
         "registered": true,
@@ -1175,7 +1174,7 @@
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "ef4942a9063c55c2c9e45d6b46d2eab3e79de670e853af5220fed7ec6d8dde4f"
+        "evidence_hash": "211d94f8957f5c87eeaa0288fca0fe3d48b481a29b640345e38fa392b0b762f6"
       },
       {
         "node_id": "DN-07",
@@ -1184,7 +1183,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.5246870000009949,
+        "duration_ms": 0.30534999999963475,
         "evidence": {
           "mutation_alarm_tripped": true
         },
@@ -1202,9 +1201,9 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.0790160000015021,
+        "duration_ms": 0.0645700000004581,
         "evidence": {
-          "checkpoint_id": "chk_1792683111761_cwsm",
+          "checkpoint_id": "chk_1793596225248_xav8",
           "type": "ATOMIC_DATABASE_RESTORE"
         },
         "registered": true,
@@ -1212,7 +1211,7 @@
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "8b9a6a73225aab2ae6411b22efaec56c92a2bdb4b87c2990e184f6eeeff3d38c"
+        "evidence_hash": "c96fdadaa4cf3b608a0ec65fad0c070732dc64d883e157114039d8bae2ddc8f0"
       },
       {
         "node_id": "DN-09",
@@ -1221,7 +1220,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.4514470000012807,
+        "duration_ms": 1.291690999999446,
         "evidence": {
           "rollback_success": true
         },
@@ -1239,7 +1238,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.40497099999993225,
+        "duration_ms": 0.5077689999998256,
         "evidence": {
           "blocked_illegal_rollback": true
         },
@@ -1257,7 +1256,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.09723000000121829,
+        "duration_ms": 0.07165299999996932,
         "evidence": {
           "completed_stages": 21,
           "success": true
@@ -1276,7 +1275,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.03726800000004005,
+        "duration_ms": 0.027040999999371707,
         "evidence": {
           "circuit_tripped": true,
           "stopped_at_stage": 8
@@ -1295,7 +1294,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.0680579999989277,
+        "duration_ms": 0.04326099999980215,
         "evidence": {
           "price_cents": 25313,
           "hash": "9088b2beaae867b42907c99400577858354c5919861286a9317cbdf1e6210774"
@@ -1314,7 +1313,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.00926199999958044,
+        "duration_ms": 0.011360999999851629,
         "evidence": {
           "publication_blocked": true
         },
@@ -1332,7 +1331,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.0500609999999142,
+        "duration_ms": 0.03309099999933096,
         "evidence": {
           "isolated": true
         },
@@ -1345,22 +1344,24 @@
       },
       {
         "node_id": "DN-16",
-        "name": "RBAC Token Mint & Validator",
+        "name": "RBAC Token Boundary (Fail-Closed Until OIDC)",
         "category": "SECURITY",
         "executed": true,
         "claim_scope": "LOCAL",
-        "status": "SUCCESS",
-        "duration_ms": 0.16957899999943038,
+        "status": "FAIL_CLOSED",
+        "duration_ms": 0.08707199999935256,
         "evidence": {
-          "role": "ADMIN",
-          "valid": true
+          "local_token_mint_blocked": true,
+          "untrusted_token_rejected": true,
+          "authorization_mode": "TRUSTED_OIDC_REQUIRED",
+          "mint_error": "BLOCKED: local token issuance is disabled; use the approved OIDC issuer."
         },
         "registered": true,
         "instantiated": true,
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "6db628e6a79ee770c9fb1502cbcb5fe2d587e45445f2692fd3ba0f175b40130f"
+        "evidence_hash": "60bdd18345560e8aea4cf32010a26b2058c7726efcee96844e6b988cb819edad"
       },
       {
         "node_id": "DN-17",
@@ -1369,7 +1370,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.06403399999908288,
+        "duration_ms": 0.06259700000009616,
         "evidence": {
           "replay_rejected": true
         },
@@ -1387,7 +1388,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.04839700000047742,
+        "duration_ms": 0.025637999999162275,
         "evidence": {
           "deterministic": true,
           "digest": "4db134a2ae06aef1c0ec283ce3f807f001e1d82d21efe2f55d77329d8ab33be8"
@@ -1408,7 +1409,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.04969299999902432,
+        "duration_ms": 0.023645000000215077,
         "evidence": {
           "bitrot_detected": false,
           "digest": "ad27dfdaa03ae34127357f9d2bed21b5ae0626534b551f4429cbf4627c0e37ce"
@@ -1427,7 +1428,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.008282999999210006,
+        "duration_ms": 0.007374000000709202,
         "evidence": {
           "paradox_resolved": "DH-P-001",
           "status": "VERIFIED"
@@ -1446,7 +1447,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.15839299999970535,
+        "duration_ms": 536.6645199999994,
         "evidence": {
           "theorem": "THM-RUSSELL-01",
           "result": "unsat"
@@ -1465,7 +1466,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.13001799999983632,
+        "duration_ms": 851.7729660000005,
         "evidence": {
           "theorem": "THM-BARBER-02",
           "result": "unsat"
@@ -1484,7 +1485,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.10973500000000058,
+        "duration_ms": 648.462626999999,
         "evidence": {
           "theorem": "THM-CURRY-04",
           "result": "unsat"
@@ -1503,7 +1504,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.13106100000004517,
+        "duration_ms": 568.0784150000018,
         "evidence": {
           "theorem": "THM-ZENO-ARCHIMEDEAN-06",
           "result": "unsat"
@@ -1522,7 +1523,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.03842399999848567,
+        "duration_ms": 0.050815000000511645,
         "evidence": {
           "well_ordered": true
         },
@@ -1540,7 +1541,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.11537599999974191,
+        "duration_ms": 780.2441340000005,
         "evidence": {
           "theorem": "THM-LIAR-03",
           "result": "unsat"
@@ -1559,7 +1560,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.10962400000062189,
+        "duration_ms": 0.14848700000038662,
         "evidence": {
           "termination_proved": true
         },
@@ -1572,22 +1573,25 @@
       },
       {
         "node_id": "DN-28",
-        "name": "Order State Machine Orchestrator",
+        "name": "Order Lifecycle Authorization Gate (Fail-Closed)",
         "category": "MARKETPLACE",
         "executed": true,
         "claim_scope": "LOCAL",
-        "status": "SUCCESS",
-        "duration_ms": 0.4655410000013944,
+        "status": "FAIL_CLOSED",
+        "duration_ms": 5.584804999998596,
         "evidence": {
-          "valid_transition": true,
-          "invalid_transition_rejected": true
+          "unauthenticated_transition_rejected": true,
+          "order_state_unchanged": true,
+          "persisted_order_status": "OFFER",
+          "authorization_reason": "BLOCKED: verified identity and signed tenant claims are required.",
+          "payment_processing": "DISABLED"
         },
         "registered": true,
         "instantiated": true,
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "859bd276f9998c14e2cacf724371a0cca160e49c9342c56129ffefb893fedc13"
+        "evidence_hash": "34938830421d3d0a691c5b2a9855e00876ef05d687232266141fb66c5412529c"
       },
       {
         "node_id": "DN-29",
@@ -1596,7 +1600,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.01085600000078557,
+        "duration_ms": 0.011682000000291737,
         "evidence": {
           "solution_id": "DH-S-001",
           "status": "VERIFIED"
@@ -1615,7 +1619,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.028652999999394524,
+        "duration_ms": 0.014005999999426422,
         "evidence": {
           "oracle_signature": "5c7551ad400635db6a30fb4efbce27933149ad50f1c921e6799e3a2fc56ccef4"
         },
@@ -1633,7 +1637,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.027213000001211185,
+        "duration_ms": 0.11547499999869615,
         "evidence": {
           "table_count": 27
         },
@@ -1651,16 +1655,16 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.1151030000000901,
+        "duration_ms": 0.063758999998754,
         "evidence": {
-          "wal_hash": "573997f21a9ad632426140aa585b3eb293be0e6276286252e74712b739d3cea1"
+          "wal_hash": "61526ba3b4ffd11515cc0f7fd8be54cb3e2afbc35c0e421c89bee2041967c5b7"
         },
         "registered": true,
         "instantiated": true,
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "a5bebac28c90ca3123b4c4630d8d9a859173438f3aa67083f7ac15e59b0cd82d"
+        "evidence_hash": "8828c5f2ba750e513258ec8ce7d12c9bab292867d31a3114517105d75d606824"
       },
       {
         "node_id": "DN-33",
@@ -1669,9 +1673,9 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.7655160000012984,
+        "duration_ms": 2.9963239999997313,
         "evidence": {
-          "diversion_id": "fail_1792683111767_61th",
+          "diversion_id": "fail_1793596228643_gus5",
           "fail_closed": true
         },
         "registered": true,
@@ -1679,7 +1683,7 @@
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "474da5315746694b6f37736dc2a7fbeff2169e1edebf50be0466c456bc1b6e98"
+        "evidence_hash": "d89202c338831146666fa6e39ca3f014c2887a1eebeb2602619c8e19f26c72de"
       },
       {
         "node_id": "DN-36",
@@ -1688,7 +1692,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "PROHIBITED_BLOCKED",
-        "duration_ms": 0.011930000000575092,
+        "duration_ms": 0.012633000000278116,
         "evidence": {
           "directive": "SOVEREIGN_DIRECTIVE_STRIPE_PROHIBITED",
           "enforced": true,
@@ -1709,7 +1713,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "PROVIDER_REQUIRED",
-        "duration_ms": 0.026632999999492313,
+        "duration_ms": 0.01657100000011269,
         "evidence": {
           "configured": false,
           "fail_closed": true
@@ -1728,11 +1732,11 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.07213899999987916,
+        "duration_ms": 0.05163600000014412,
         "evidence": {
-          "escrow_id": "escrow_sov_1792683112831",
+          "escrow_id": "escrow_sov_1793596228646",
           "settlement_engine": "SOVEREIGN_CRYPTOGRAPHIC_ESCROW",
-          "escrow_hash": "8c7f393da5fe550849613b2df846de85551e1eb3e4875791ac05ca3ea447735c",
+          "escrow_hash": "e044784b5c3eaa3737f2a2b61f1e588aaf92211ec84e9c19062369b90f22599e",
           "timelock_enforced": true,
           "multisig_verified": true,
           "fail_closed": true
@@ -1742,7 +1746,7 @@
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "6bb82599d7e99c316c651d4d87fba01fa297774c04e7c3e48ba6f8f34f58b288"
+        "evidence_hash": "a9f4ac84b27ed98d825387ed659170b1a84a018bd2985e49ee9da470f9fc570c"
       },
       {
         "node_id": "DN-39",
@@ -1751,7 +1755,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "PROVIDER_REQUIRED",
-        "duration_ms": 0.009363999999550288,
+        "duration_ms": 0.01016899999922316,
         "evidence": {
           "configured": false,
           "fail_closed": true
@@ -1770,7 +1774,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.02557900000101654,
+        "duration_ms": 0.01650100000006205,
         "evidence": {
           "kernel": "Lean4_Type_Theory",
           "cert_digest": "29c7e0f6a80e770b2acdb373ca1858d5f2307cbc44b6a65ae185db6e213a7e9a",
@@ -1790,7 +1794,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.03478999999970256,
+        "duration_ms": 0.015638999999282532,
         "evidence": {
           "logic": "Higher_Order_Logic",
           "cert_digest": "cc99c1f441f67ee39e30b56f8595ace1c902efa15df9c9034a72b496808adae4",
@@ -1810,7 +1814,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.025906999999278923,
+        "duration_ms": 0.012934000000313972,
         "evidence": {
           "calculus": "Inductive_Constructions",
           "cert_digest": "36795d02117f78a894fea72e13697df13ffbf578079244e7dd3c823e49aefe49",
@@ -1830,7 +1834,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.07955700000093202,
+        "duration_ms": 0.06826700000056007,
         "evidence": {
           "plan_stages": 3,
           "graph": [
@@ -1865,7 +1869,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.21666300000106276,
+        "duration_ms": 991.0115509999996,
         "evidence": {
           "theorem": "THM-PIGEONHOLE-08",
           "result": "unsat"
@@ -1884,7 +1888,7 @@
         "executed": true,
         "claim_scope": "MODEL",
         "status": "SUCCESS",
-        "duration_ms": 0.009342999999716994,
+        "duration_ms": 0.008135000000038417,
         "evidence": {
           "impossibility_enforced": true,
           "common_knowledge_lossy_bound": "UNSAT"
@@ -1903,7 +1907,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.05283400000007532,
+        "duration_ms": 0.052016999999978,
         "evidence": {
           "consistent_cut_digest": "332be9a5813bc6e29b1eee363f6ec28b72ec80d979325d1c51871388e4498868"
         },
@@ -1921,7 +1925,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.020330000001195003,
+        "duration_ms": 0.018365000001722365,
         "evidence": {
           "current_term": 1,
           "leader": "NODE_DAISY_LEADER",
@@ -1941,7 +1945,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.01238999999986845,
+        "duration_ms": 0.01136199999928067,
         "evidence": {
           "vector_clock": {
             "N1": 2,
@@ -1964,7 +1968,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.04245699999955832,
+        "duration_ms": 0.050815000000511645,
         "evidence": {
           "license_key": "LIC-636627703D38586A82DB3773632954D5"
         },
@@ -1982,9 +1986,9 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.13153499999862106,
+        "duration_ms": 0.14169399999991583,
         "evidence": {
-          "heap_used_bytes": 25321384,
+          "heap_used_bytes": 39934904,
           "telemetry_online": true
         },
         "registered": true,
@@ -1992,7 +1996,7 @@
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "ecedd20b44366a36896ef2d285d379ae139cb6b449c25ac7ae12cd0ac91d6d3d"
+        "evidence_hash": "4510b6e6b8b1d4c56a2b80d80519f67a5434139712835392ff8775f11b827ce8"
       },
       {
         "node_id": "DN-51",
@@ -2001,7 +2005,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.029338000000279862,
+        "duration_ms": 0.017362999999022577,
         "evidence": {
           "hsm_attestation_hash": "0b190736a0dabe8752e6d8e0817a53a262d219dcb639b79f7a412fa1606d02b1"
         },
@@ -2019,7 +2023,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.029328000000532484,
+        "duration_ms": 0.018624000000272645,
         "evidence": {
           "signature": "34efc0333300290fe31c887a145f99270dbc4362bbf730bbe4f635ea745c59fe",
           "verified": true
@@ -2038,7 +2042,7 @@
         "executed": true,
         "claim_scope": "LOCAL",
         "status": "SUCCESS",
-        "duration_ms": 0.0378099999998085,
+        "duration_ms": 0.010339000000385568,
         "evidence": {
           "in_range": true,
           "commitment": "4b97f1959fa3870bada76f04f01e822bf995b0863ae7800dbb88e538c1fd7b64"
@@ -2056,18 +2060,18 @@
         "category": "CORE_KERNEL",
         "executed": true,
         "claim_scope": "LOCAL",
-        "status": "SUCCESS",
-        "duration_ms": 0.9169770000007702,
+        "status": "FAIL_CLOSED",
+        "duration_ms": 0.5443060000015976,
         "evidence": {
-          "http_status": 200,
-          "health": "HEALTHY"
+          "http_status": 503,
+          "health": "blocked"
         },
         "registered": true,
         "instantiated": true,
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "78094f57b039040c8644d70c9f44fbf993f4c87810e84adc66afc349ba95d1cb"
+        "evidence_hash": "18c3a1341de1c673eea7d292af09477b156d57680db5d654eadfcfc0a15742eb"
       }
     ],
     "gateways_3": [
@@ -2076,13 +2080,13 @@
         "name": "Neon Postgres Adapter",
         "category": "ADAPTERS",
         "executed": true,
-        "claim_scope": "PRODUCTION",
-        "status": "SUCCESS",
-        "duration_ms": 682.503224,
+        "claim_scope": "LOCAL",
+        "status": "PROVIDER_REQUIRED",
+        "duration_ms": 0.3155590000005759,
         "evidence": {
-          "configured": true,
+          "configured": false,
           "backend": "PERSISTENCE_UNAVAILABLE",
-          "fallback_active": false,
+          "fallback_active": true,
           "tables_verified": 0
         },
         "registered": true,
@@ -2090,7 +2094,7 @@
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "a605dea355b8c4ba368b1dbac033f0e948605b348913f9a0832b6ddd753f8de2"
+        "evidence_hash": "c6aa82b9ee2d133f3d80147cfc174bfc9f806182fdbf0b8308438e9f70f37f87"
       },
       {
         "node_id": "DN-35",
@@ -2098,13 +2102,13 @@
         "category": "PAYMENTS",
         "executed": true,
         "claim_scope": "SANDBOX",
-        "status": "SUCCESS",
-        "duration_ms": 381.06887300000017,
+        "status": "FAIL_CLOSED",
+        "duration_ms": 0.12547400000039488,
         "evidence": {
-          "configured": true,
+          "configured": false,
           "environment": "sandbox",
-          "client_id_prefix": "AUVq...gEQ6",
-          "authenticated": true,
+          "client_id_prefix": "NOT_CONFIGURED",
+          "authenticated": false,
           "fail_closed_enforced": true
         },
         "registered": true,
@@ -2112,7 +2116,7 @@
         "reachable": true,
         "output_asserted": true,
         "evidence_generated": true,
-        "evidence_hash": "cc1377d6cc4c16c859ee46ff56863faef5494e68a5bf781fb241201f240ff131"
+        "evidence_hash": "937ba89c0cfd817624c9bf7cbd0f164e39767d38407511e35df13212f8625fa7"
       }
     ]
   }

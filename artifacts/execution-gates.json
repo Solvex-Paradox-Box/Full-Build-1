@@ -1,20 +1,21 @@
 {
   "pipeline_name": "SOLVEX + Daisy Haminja AI/UI/OS Authoritative 15-Gate Verification",
   "version": "1.0.0-PROD",
-  "execution_id": "exec_pipeline_1792683102844",
-  "commit_sha": "728625581c2f89210c752d03fda0a154812b2366",
+  "execution_id": "exec_pipeline_1793596218468",
+  "commit_sha": "733e7f66a58bd7a54cb9c6d463de4f0404f9f602",
   "environment": "local",
-  "started_at": "2026-10-22T15:31:42.843Z",
-  "completed_at": "2026-10-22T15:31:53.082Z",
-  "total_duration_ms": 10238.28,
+  "started_at": "2026-11-02T05:10:18.467Z",
+  "completed_at": "2026-11-02T05:10:29.778Z",
+  "total_duration_ms": 11310.06,
   "gates_total": 15,
-  "gates_passed": 14,
+  "gates_passed": 12,
   "production_gate_verdict": "BLOCKED_MISSING_EXTERNAL_CREDENTIALS",
   "production_blockers": [
+    "GATE-12 lifecycle blocked: trusted identity and signed tenant claims are unavailable; no order transition or deployment occurred.",
     "Environment is currently [LOCAL]. Production requires explicit SOLVEX_ENV=production opt-in and live provider verification."
   ],
   "claim_scope_verdict": "LOCAL_VERIFIED / MODEL_VERIFIED",
-  "artifacts_directory": "/app/applet/artifacts",
+  "artifacts_directory": "/workspaces/Full-Build/artifacts",
   "gates": [
     {
       "gate_index": 0,
@@ -22,11 +23,11 @@
       "name": "Repository Integrity & Baseline Provenance",
       "claim_scope": "LOCAL",
       "status": "PASSED",
-      "duration_ms": 8.01,
+      "duration_ms": 13.52,
       "details": {
-        "execution_id": "exec_pipeline_1792683102844",
-        "commit_sha": "728625581c2f89210c752d03fda0a154812b2366",
-        "modified_files_count": 0,
+        "execution_id": "exec_pipeline_1793596218468",
+        "commit_sha": "733e7f66a58bd7a54cb9c6d463de4f0404f9f602",
+        "modified_files_count": 2,
         "runtime_mode": "NODE_RUNTIME"
       }
     },
@@ -36,7 +37,7 @@
       "name": "Dependency Preflight Layer",
       "claim_scope": "LOCAL",
       "status": "PASSED",
-      "duration_ms": 0.02,
+      "duration_ms": 0.03,
       "details": {
         "total_dependencies": 8,
         "present": 7,
@@ -52,14 +53,7 @@
       "duration_ms": 0,
       "details": {
         "environment": "local",
-        "present_vars": [
-          "PAYPAL_SANDBOX_CLIENT_ID",
-          "PAYPAL_SANDBOX_CLIENT_SECRET",
-          "PAYPAL_LIVE_CLIENT_ID",
-          "PAYPAL_LIVE_CLIENT_SECRET",
-          "NEON_DATABASE_URL",
-          "GEMINI_API_KEY"
-        ],
+        "present_vars": [],
         "absent_vars": []
       }
     },
@@ -82,7 +76,7 @@
       "name": "Build & TypeScript Static Verification",
       "claim_scope": "LOCAL",
       "status": "PASSED",
-      "duration_ms": 2779.1,
+      "duration_ms": 1852.47,
       "details": {
         "typecheck": "CLEAN",
         "mode": "CLI_TYPECHECK"
@@ -94,7 +88,7 @@
       "name": "Unit & Enterprise Invariant Test Suite",
       "claim_scope": "LOCAL",
       "status": "PASSED",
-      "duration_ms": 1855.53,
+      "duration_ms": 28.59,
       "details": {
         "total_tests": 30,
         "passed_tests": 30,
@@ -107,17 +101,20 @@
       "name": "DFRL 88-Operator Z3 SMT Formal Verification",
       "claim_scope": "MODEL",
       "status": "PASSED",
-      "duration_ms": 3976,
+      "duration_ms": 4134.87,
       "details": {
         "total_propositions": 88,
         "attempted": 88,
         "executed": 88,
-        "unsat_proved_count": 88,
+        "expected_solver_result": "unsat",
+        "sat_count": 0,
+        "unsat_count": 88,
+        "deterministic_replays_matched": 88,
         "authored_models_count": 20,
         "generated_models_count": 68,
         "solver_engine": "Microsoft Research Z3 WASM (z3-solver)",
         "solver_version": "Microsoft Research Z3 WASM 5.2.0",
-        "root_sha256": "bdf4a458cd8d663a9bf691b6d62ce56df231165d5103d8a5d320cee9b89a1780"
+        "root_sha256": "4ba83a779aaddd54c683e7bda2748cc73c0acc665b5f74861a278b0db77b8c86"
       }
     },
     {
@@ -140,7 +137,7 @@
       "name": "SMT Mutation, SHA-256 Tamper & Fail-Closed Tests",
       "claim_scope": "LOCAL",
       "status": "PASSED",
-      "duration_ms": 82.87,
+      "duration_ms": 31.97,
       "details": {
         "smt_mutation_detected": true,
         "smt_mutation_transition": "unsat -> sat",
@@ -155,7 +152,7 @@
       "name": "Daisy 54-Node Architecture CUJ Execution Coverage",
       "claim_scope": "LOCAL",
       "status": "PASSED",
-      "duration_ms": 1076.76,
+      "duration_ms": 4933.79,
       "details": {
         "total_nodes": 54,
         "registered_nodes": 54,
@@ -177,7 +174,7 @@
       "name": "Multi-Tenant Relational & Merkle Chain Persistence",
       "claim_scope": "LOCAL",
       "status": "PASSED",
-      "duration_ms": 38.84,
+      "duration_ms": 1.46,
       "details": {
         "sqlite_tables_count": 27,
         "required_tables": 27,
@@ -188,7 +185,7 @@
         "restart_readback_passed": true,
         "audit_chain_passed": true,
         "evidence_persistence_passed": true,
-        "neon_status": "VERIFIED"
+        "neon_status": "PROVIDER_REQUIRED"
       }
     },
     {
@@ -196,20 +193,20 @@
       "gate_id": "GATE-11",
       "name": "External Provider Gateways (Neon, PayPal)",
       "claim_scope": "LOCAL",
-      "status": "PASSED",
-      "duration_ms": 204.47,
+      "status": "EXTERNAL_PROVIDER_REQUIRED",
+      "duration_ms": 0.03,
       "details": {
         "paypal": {
-          "configured": true,
+          "configured": false,
           "environment": "sandbox",
-          "authenticated": true,
-          "status": "AUTHENTICATED",
+          "authenticated": false,
+          "status": "EXTERNAL_PROVIDER_REQUIRED",
           "claim_scope": "LOCAL"
         },
         "neon": {
-          "configured": true,
-          "connected": true,
-          "status": "CONNECTED",
+          "configured": false,
+          "connected": false,
+          "status": "EXTERNAL_PROVIDER_REQUIRED",
           "claim_scope": "LOCAL"
         },
         "stripe": {
@@ -223,29 +220,40 @@
       "gate_id": "GATE-12",
       "name": "End-to-End Lifecycle Execution",
       "claim_scope": "LOCAL",
-      "status": "PASSED",
-      "duration_ms": 0.52,
+      "status": "BLOCKED",
+      "duration_ms": 0.61,
       "details": {
         "solution_pipeline": {
           "success": true,
           "completed_stages": 21,
           "total_stages": 21,
-          "solution_id": "DH-S-MVJP8MT2"
+          "solution_id": "DH-S-MVYSVW3Y"
         },
         "order_lifecycle": {
-          "order_id": "e2e_order_1792683113078",
-          "transitions_executed": [
+          "order_id": "e2e_order_1793596229710",
+          "planned_transitions": [
             "ORDER_CREATED",
             "ESCROW_FUNDED",
             "SANDBOX_PROVISIONED",
             "REPLAY_VERIFIED",
             "DEPLOYED"
           ],
-          "final_status": "DEPLOYED"
+          "transition_attempts": [
+            {
+              "target_state": "ORDER_CREATED",
+              "success": false,
+              "error": "BLOCKED: verified identity and signed tenant claims are required."
+            }
+          ],
+          "transitions_executed": [],
+          "final_status": "OFFER",
+          "authorization_blocked": true,
+          "payment_processing": "DISABLED"
         },
         "merkle_audit_append": {
-          "record_id": "audit_1792683113079_15",
-          "record_hash": "b4a83c6044c9a0895de066f0089ddc6d71263c85807f92c0c84d14f22dab1b1c"
+          "action": "LIFECYCLE_BLOCKED",
+          "record_id": "audit_1793596229710_8",
+          "record_hash": "6ff486f5c3e1d2165246be89a12446b4faf77b55fbd326177dcebe663c88e724"
         }
       }
     },
@@ -255,7 +263,7 @@
       "name": "Evidence Generation & Artifact Packaging",
       "claim_scope": "LOCAL",
       "status": "PASSED",
-      "duration_ms": 3.12,
+      "duration_ms": 67.47,
       "details": {
         "artifacts_generated": [
           "DFRL-88-MACHINE-VERIFICATION-AUDIT.md",
@@ -275,13 +283,14 @@
       "name": "Final Truth-Boundary Audit & Production Gate",
       "claim_scope": "LOCAL",
       "status": "BLOCKED",
-      "duration_ms": 0.04,
+      "duration_ms": 0.06,
       "details": {
-        "execution_id": "exec_pipeline_1792683102844",
+        "execution_id": "exec_pipeline_1793596218468",
         "verdict": "BLOCKED_MISSING_EXTERNAL_CREDENTIALS",
         "claim_scope": "LOCAL_VERIFIED / MODEL_VERIFIED",
-        "blockers_count": 1,
+        "blockers_count": 2,
         "blockers": [
+          "GATE-12 lifecycle blocked: trusted identity and signed tenant claims are unavailable; no order transition or deployment occurred.",
           "Environment is currently [LOCAL]. Production requires explicit SOLVEX_ENV=production opt-in and live provider verification."
         ]
       }

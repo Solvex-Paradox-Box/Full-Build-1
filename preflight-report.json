@@ -1,8 +1,8 @@
 {
-  "timestamp": 1792683103061,
-  "commit_sha": "728625581c2f89210c752d03fda0a154812b2366",
+  "timestamp": 1793596218630,
+  "commit_sha": "733e7f66a58bd7a54cb9c6d463de4f0404f9f602",
   "environment_mode": "local",
-  "node_version": "v22.23.3",
+  "node_version": "v24.22.2",
   "platform": "linux",
   "arch": "x64",
   "dependencies": [
@@ -10,7 +10,7 @@
       "name": "node",
       "category": "RUNTIME",
       "status": "PRESENT",
-      "version": "v22.23.3",
+      "version": "v24.22.2",
       "tested_import_path": "process.version",
       "notes": "Node.js LTS runtime"
     },
@@ -65,45 +65,45 @@
   "configurations": [
     {
       "key": "PAYPAL_SANDBOX_CLIENT_ID",
-      "status": "PRESENT",
-      "format_valid": true,
+      "status": "NOT_REQUIRED_FOR_SELECTED_ENVIRONMENT",
+      "format_valid": false,
       "environment_scope": "local",
-      "notes": "Configured in runtime environment (matched PAYPAL_SANDBOX_CLIENT_ID)"
+      "notes": "Not set in process.env"
     },
     {
       "key": "PAYPAL_SANDBOX_CLIENT_SECRET",
-      "status": "PRESENT",
-      "format_valid": true,
+      "status": "NOT_REQUIRED_FOR_SELECTED_ENVIRONMENT",
+      "format_valid": false,
       "environment_scope": "local",
-      "notes": "Configured in runtime environment (matched PAYPAL_SANDBOX_CLIENT_SECRET)"
+      "notes": "Not set in process.env"
     },
     {
       "key": "PAYPAL_LIVE_CLIENT_ID",
-      "status": "PRESENT",
-      "format_valid": true,
+      "status": "NOT_REQUIRED_FOR_SELECTED_ENVIRONMENT",
+      "format_valid": false,
       "environment_scope": "local",
-      "notes": "Configured in runtime environment (matched PAYPAL_LIVE_CLIENT_ID)"
+      "notes": "Not set in process.env"
     },
     {
       "key": "PAYPAL_LIVE_CLIENT_SECRET",
-      "status": "PRESENT",
-      "format_valid": true,
+      "status": "NOT_REQUIRED_FOR_SELECTED_ENVIRONMENT",
+      "format_valid": false,
       "environment_scope": "local",
-      "notes": "Configured in runtime environment (matched PAYPAL_LIVE_CLIENT_SECRET)"
+      "notes": "Not set in process.env"
     },
     {
       "key": "NEON_DATABASE_URL",
-      "status": "PRESENT",
-      "format_valid": true,
+      "status": "NOT_REQUIRED_FOR_SELECTED_ENVIRONMENT",
+      "format_valid": false,
       "environment_scope": "local",
-      "notes": "Configured in runtime environment (matched NEON_DATABASE_URL)"
+      "notes": "Not set in process.env"
     },
     {
       "key": "GEMINI_API_KEY",
-      "status": "PRESENT",
-      "format_valid": true,
+      "status": "NOT_REQUIRED_FOR_SELECTED_ENVIRONMENT",
+      "format_valid": false,
       "environment_scope": "local",
-      "notes": "Configured in runtime environment (matched GEMINI_API_KEY)"
+      "notes": "Not set in process.env"
     }
   ],
   "blockers": [],
