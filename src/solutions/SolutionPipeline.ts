@@ -154,16 +154,28 @@ export class SolutionPipeline {
     const functionNames = new Set<string>();
     const recursiveCalls: string[] = [];
     const collectNames = (node: ts.Node): void => {
-      if ((ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) && node.name && ts.isIdentifier(node.name)) {
+      if ((ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) &&
+          node.name && ts.isIdentifier(node.name)) {
+        functionNames.add(node.name.text);
+      }
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) &&
+          node.initializer && ts.isFunctionLike(node.initializer)) {
         functionNames.add(node.name.text);
       }
       ts.forEachChild(node, collectNames);
     };
     collectNames(sourceFile);
     const inspectCalls = (node: ts.Node): void => {
-      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && functionNames.has(node.expression.text)) {
+      if (ts.isCallExpression(node)) {
+        const targetName = ts.isIdentifier(node.expression)
+          ? node.expression.text
+          : ts.isPropertyAccessExpression(node.expression)
+            ? node.expression.name.text
+            : undefined;
         const enclosing = this.enclosingFunctionName(node);
-        if (enclosing && enclosing === node.expression.text) recursiveCalls.push(enclosing);
+        if (targetName && functionNames.has(targetName) && enclosing === targetName) {
+          recursiveCalls.push(enclosing);
+        }
       }
       ts.forEachChild(node, inspectCalls);
     };
@@ -194,8 +206,16 @@ export class SolutionPipeline {
   private enclosingFunctionName(node: ts.Node): string | undefined {
     let current: ts.Node | undefined = node.parent;
     while (current) {
-      if ((ts.isFunctionDeclaration(current) || ts.isMethodDeclaration(current)) &&
-          current.name && ts.isIdentifier(current.name)) return current.name.text;
+      if (ts.isFunctionLike(current)) {
+        if (current.name && ts.isIdentifier(current.name)) return current.name.text;
+        const parent = current.parent;
+        if (ts.isVariableDeclaration(parent) && parent.initializer === current && ts.isIdentifier(parent.name)) {
+          return parent.name.text;
+        }
+        if (ts.isPropertyDeclaration(parent) && parent.initializer === current && ts.isIdentifier(parent.name)) {
+          return parent.name.text;
+        }
+      }
       current = current.parent;
     }
     return undefined;
