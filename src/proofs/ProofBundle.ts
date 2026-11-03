@@ -23,7 +23,7 @@ export class ProofBundleBuilder {
       verifier_identity: 'DAISY_HAMINJA_PROOF_ENGINE_V1',
       verification_status: 'PARTIAL',
       limitations: [],
-      reproducibility_instructions: 'Run `npm run verify:enterprise` in isolated container.'
+      reproducibility_instructions: 'No isolated cleanroom is configured; do not treat this bundle as deployment or marketplace evidence.'
     };
   }
 
