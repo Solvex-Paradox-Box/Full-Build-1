@@ -1,4 +1,4 @@
-name: Daisy 54-node structural verification
+name: Daisy 54-node verification
 
 on:
   push:
@@ -24,3 +24,28 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Verify canonical 54-node registry and executor mapping
         run: bun run verify:daisy-54-structure
+
+  runtime-test-daisy-54:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout verification branch
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Run all 54 node handlers with provider credentials removed
+        run: bun run verify:daisy-54-runtime
+      - name: Upload per-node runtime report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daisy-54-runtime-report
+          path: artifacts/daisy-54-runtime-report.json
+          if-no-files-found: error
+          retention-days: 14
