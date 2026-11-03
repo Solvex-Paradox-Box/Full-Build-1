@@ -194,12 +194,29 @@ export class Z3FormalProofEngine {
   }
 
   public isAuthenticResult(result: Z3ProofResult): boolean {
-    return this.authenticReceipts.has(result) &&
-      result.proved === true &&
-      result.solver_result === result.expected_solver_result &&
-      result.solver_result !== 'error' &&
-      result.solver_result !== 'unknown' &&
-      /^[a-f0-9]{64}$/.test(result.certificate_sha256);
+    if (!this.authenticReceipts.has(result) ||
+        result.proved !== true ||
+        result.solver_result !== result.expected_solver_result ||
+        result.solver_result === 'error' ||
+        result.solver_result === 'unknown' ||
+        !/^[a-f0-9]{64}$/.test(result.certificate_sha256)) return false;
+    const receiptPayload = {
+      schema: 'SOLVEX_ACTUAL_Z3_EXECUTION_RECEIPT_V1',
+      theoremId: result.theorem_id,
+      theoremName: result.theorem_name,
+      domain: result.domain,
+      claim: result.claim,
+      solverEngine: result.solver_engine,
+      solverVersion: result.solver_version,
+      solverResult: result.solver_result,
+      expectedResult: result.expected_solver_result,
+      proved: result.proved,
+      smtScript: result.smt_lib_script,
+      errorMessage: result.error_message || null,
+      durationMs: result.execution_time_ms,
+      timestamp: result.timestamp
+    };
+    return computeSha256(JSON.stringify(receiptPayload)) === result.certificate_sha256;
   }
 
   public getCatalog(): TheoremCatalogItem[] {
@@ -324,6 +341,8 @@ export class Z3FormalProofEngine {
       certificate_sha256: computeSha256(JSON.stringify(certPayload)),
       timestamp
     };
+    if (receipt.counterexample_model) Object.freeze(receipt.counterexample_model);
+    Object.freeze(receipt);
     this.authenticReceipts.add(receipt);
     return receipt;
   }
