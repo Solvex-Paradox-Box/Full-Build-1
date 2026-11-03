@@ -199,12 +199,33 @@ export class DurableStore {
       this.state.offers = JSON.parse(JSON.stringify(chk.snapshot_state.offers || {}));
       this.state.tenants = JSON.parse(JSON.stringify(chk.snapshot_state.tenants || {}));
       const sqlite = SqliteStore.getInstance();
-      this.deleteRemovedRows('problems', previous.problems, this.state.problems);
-      this.deleteRemovedRows('solutions', previous.solutions, this.state.solutions);
-      this.deleteRemovedRows('offers', previous.offers, this.state.offers);
-      this.deleteRemovedRows('tenants', previous.tenants, this.state.tenants);
-      this.persist();
-      return { success: true };
+      const rawDb = sqlite.getRawDb();
+      const transactional = sqlite.isDiskBacked();
+      try {
+        if (transactional) rawDb.exec('BEGIN IMMEDIATE;');
+        this.deleteRemovedRows('problems', previous.problems, this.state.problems);
+        this.deleteRemovedRows('solutions', previous.solutions, this.state.solutions);
+        this.deleteRemovedRows('offers', previous.offers, this.state.offers);
+        this.deleteRemovedRows('tenants', previous.tenants, this.state.tenants);
+        this.persist();
+        if (transactional) rawDb.exec('COMMIT;');
+        return { success: true };
+      } catch (error) {
+        if (transactional) {
+          try { rawDb.exec('ROLLBACK;'); } catch {}
+        }
+        this.state.problems = previous.problems;
+        this.state.solutions = previous.solutions;
+        this.state.offers = previous.offers;
+        this.state.tenants = previous.tenants;
+        if (!transactional) {
+          try { this.persist(); } catch {}
+        }
+        return {
+          success: false,
+          error: `Checkpoint restore failed closed: ${error instanceof Error ? error.message : String(error)}`
+        };
+      }
     }
     return { success: false, error: 'Snapshot state missing from checkpoint' };
   }
