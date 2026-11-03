@@ -8,7 +8,7 @@
       "name": "Authentication & RBAC Evaluation",
       "category": "SECURITY",
       "passed": true,
-      "duration_ms": 3,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }
@@ -18,7 +18,7 @@
       "name": "MMTAI Single-Use Token Replay Prevention",
       "category": "SECURITY",
       "passed": true,
-      "duration_ms": 0,
+      "duration_ms": 1,
       "details": {
         "status": "PASSED"
       }
@@ -28,7 +28,7 @@
       "name": "Multi-Tenant Cryptographic Partition Isolation",
       "category": "SECURITY",
       "passed": true,
-      "duration_ms": 2,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }
@@ -38,7 +38,7 @@
       "name": "Audit Chain Cryptographic Hash Continuity",
       "category": "AUDIT",
       "passed": true,
-      "duration_ms": 2,
+      "duration_ms": 1,
       "details": {
         "status": "PASSED"
       }
@@ -48,7 +48,7 @@
       "name": "Anti-Tamper Sentinel Active Tamper Detection",
       "category": "AUDIT",
       "passed": true,
-      "duration_ms": 2,
+      "duration_ms": 3,
       "details": {
         "status": "PASSED"
       }
@@ -58,7 +58,7 @@
       "name": "Atomic State Checkpoint & Reversibility Engine",
       "category": "PERSISTENCE",
       "passed": true,
-      "duration_ms": 0,
+      "duration_ms": 2,
       "details": {
         "status": "PASSED"
       }
@@ -78,7 +78,7 @@
       "name": "Paradox Registry Integrity (Exact 32 Bootstrap Set)",
       "category": "PARADOX",
       "passed": true,
-      "duration_ms": 1,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }
@@ -88,7 +88,7 @@
       "name": "Paradox Duplicate & Family Variant Taxonomy",
       "category": "PARADOX",
       "passed": true,
-      "duration_ms": 0,
+      "duration_ms": 1,
       "details": {
         "status": "PASSED"
       }
@@ -98,7 +98,7 @@
       "name": "NOPOT Bounded Termination Formal Proof Verification",
       "category": "PROOFS",
       "passed": true,
-      "duration_ms": 2,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }
@@ -108,7 +108,7 @@
       "name": "Preserved Solution DH-S-001 Verification Integrity",
       "category": "SOLUTIONS",
       "passed": true,
-      "duration_ms": 0,
+      "duration_ms": 1,
       "details": {
         "status": "PASSED"
       }
@@ -118,7 +118,7 @@
       "name": "Proof Bundle Builder Seal & Independent Oracle Attestation",
       "category": "PROOFS",
       "passed": true,
-      "duration_ms": 2,
+      "duration_ms": 1,
       "details": {
         "status": "PASSED"
       }
@@ -128,7 +128,7 @@
       "name": "Cleanroom Replay Bitrot & Divergence Detection",
       "category": "PROOFS",
       "passed": true,
-      "duration_ms": 7,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }
@@ -138,7 +138,7 @@
       "name": "21-Stage Problem Resolution Pipeline Full Traversal",
       "category": "PIPELINE",
       "passed": true,
-      "duration_ms": 1,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }
@@ -148,7 +148,7 @@
       "name": "Pipeline Fail-Closed Gate Halts and Quarantines on Error",
       "category": "PIPELINE",
       "passed": true,
-      "duration_ms": 0,
+      "duration_ms": 2,
       "details": {
         "status": "PASSED"
       }
@@ -188,17 +188,17 @@
       "name": "External Adapter Inventory Transparency (Neon, PayPal)",
       "category": "ADAPTERS",
       "passed": true,
-      "duration_ms": 0,
+      "duration_ms": 6,
       "details": {
         "status": "PASSED"
       }
     },
     {
       "test_number": 20,
-      "name": "Crystal Clear Box Redaction Preserves Verifiable Evidence",
+      "name": "Crystal Clear Box Redaction Uses Persisted Evidence Only",
       "category": "AUDIT",
       "passed": true,
-      "duration_ms": 12,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }
@@ -215,10 +215,10 @@
     },
     {
       "test_number": 22,
-      "name": "System Status API Endpoint Computes Real State",
+      "name": "System Status Projection Computes Real State",
       "category": "API",
       "passed": true,
-      "duration_ms": 2,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }
@@ -255,17 +255,17 @@
     },
     {
       "test_number": 26,
-      "name": "Fail-Closed: Unauthorized Runtime Deployment Blocked",
+      "name": "Fail-Closed: Local Authentication Cannot Mint Sessions",
       "category": "SECURITY",
       "passed": true,
-      "duration_ms": 1,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }
     },
     {
       "test_number": 27,
-      "name": "Fail-Closed: Cross-Tenant Data Access Blocked",
+      "name": "Fail-Closed: Unverified Identity Cannot Access Tenant Data",
       "category": "SECURITY",
       "passed": true,
       "duration_ms": 0,
@@ -278,17 +278,17 @@
       "name": "Fail-Closed: Missing PayPal Credentials Evaluated",
       "category": "ADAPTERS",
       "passed": true,
-      "duration_ms": 1812,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }
     },
     {
       "test_number": 29,
-      "name": "Order Lifecycle State Machine Validates Transitions & Failures",
+      "name": "Order Lifecycle Blocks Unverified or Missing Orders",
       "category": "MARKETPLACE",
       "passed": true,
-      "duration_ms": 1,
+      "duration_ms": 5,
       "details": {
         "status": "PASSED"
       }
@@ -298,7 +298,7 @@
       "name": "Central Failure Diversion Preserves Evidence & Executes Rollback",
       "category": "REVERSIBILITY",
       "passed": true,
-      "duration_ms": 1,
+      "duration_ms": 0,
       "details": {
         "status": "PASSED"
       }

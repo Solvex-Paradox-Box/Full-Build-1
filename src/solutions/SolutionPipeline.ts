@@ -61,11 +61,11 @@ export class SolutionPipeline {
       paradox_ref: 'DH-P-001',
       implementation_source: code,
       implementation_hash: computeSha256(code),
-      verification_status: 'VERIFIED',
+      verification_status: 'PARTIAL',
       proof_bundle_id: 'PB-DH-S-001',
       performance_boost_percent: 42.5,
       reversibility_guaranteed: true,
-      status: 'VERIFIED'
+      status: 'PARTIAL'
     };
 
     store.getState().solutions['DH-S-001'] = sol;
@@ -91,68 +91,14 @@ export class SolutionPipeline {
     store.persist();
   }
 
-  public runPipeline(paradoxCode: string, codeSolution: string): PipelineExecutionResult {
-    const stageTraces: Array<{ stage: number; name: string; status: 'PASSED' | 'FAILED'; duration_ms: number }> = [];
-    let completed = 0;
-
-    for (let i = 0; i < this.STAGES.length; i++) {
-      const stageNum = i + 1;
-      const stageName = this.STAGES[i];
-
-      // Fail-closed invariant gate simulation: if poisoned flag is present
-      if (codeSolution.includes(`FAIL_STAGE_${stageNum}`) || (codeSolution.includes('FAIL_STAGE_9') && stageNum === 9)) {
-        stageTraces.push({
-          stage: stageNum,
-          name: stageName,
-          status: 'FAILED',
-          duration_ms: 1.2
-        });
-        return {
-          overall_success: false,
-          completed_stages: completed,
-          total_stages: 21,
-          paradox_code: paradoxCode,
-          stage_traces: stageTraces,
-          rejection_reason: `Fail-closed invariant tripped at Gate ${stageNum}: Sentinel detected fatal specification anomaly.`
-        };
-      }
-
-      stageTraces.push({
-        stage: stageNum,
-        name: stageName,
-        status: 'PASSED',
-        duration_ms: Number((Math.random() * 2 + 0.5).toFixed(2))
-      });
-      completed++;
-    }
-
-    const solId = `DH-S-${Date.now().toString(36).toUpperCase()}`;
-    const newSolution: SolutionEntity = {
-      id: solId,
-      code: solId,
-      title: `Verified Solution for ${paradoxCode}`,
-      domain: 'FORMAL_VERIFICATION',
-      problem_ref: paradoxCode,
-      paradox_ref: paradoxCode,
-      implementation_source: codeSolution,
-      implementation_hash: computeSha256(codeSolution),
-      verification_status: 'VERIFIED',
-      proof_bundle_id: `PB-${solId}`,
-      performance_boost_percent: 35.0,
-      reversibility_guaranteed: true
-    };
-
-    const store = DurableStore.getInstance();
-    store.getState().solutions[solId] = newSolution;
-    store.persist();
-
+  public runPipeline(paradoxCode: string, _codeSolution: string): PipelineExecutionResult {
     return {
-      overall_success: true,
-      completed_stages: 21,
-      total_stages: 21,
+      overall_success: false,
+      completed_stages: 0,
+      total_stages: this.STAGES.length,
       paradox_code: paradoxCode,
-      stage_traces: stageTraces,
-      solution_id: solId
+      stage_traces: [{ stage: 1, name: this.STAGES[0], status: 'FAILED', duration_ms: 0 }],
+      rejection_reason: 'BLOCKED: executable handlers for the 21 pipeline stages are not implemented.'
     };
   }
 }

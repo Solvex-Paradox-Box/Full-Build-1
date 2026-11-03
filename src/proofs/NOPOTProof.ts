@@ -72,11 +72,6 @@ export class NOPOTVerifier {
       well_founded_domain: 'Natural Numbers with strict order (<)',
       termination_proved: terminationProved,
       mathematical_proof_hash: computeSha256(JSON.stringify(proofPayload)),
-      formal_smt_verification: {
-        verified_by_z3: true,
-        z3_result: 'UNSAT (Negation of Inductive Decrease has zero counterexamples)',
-        theorem_id: 'THM-INDUCTIVE-TERMINATION-05'
-      },
       timestamp: Date.now()
     };
   }

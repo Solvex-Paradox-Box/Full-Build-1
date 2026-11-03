@@ -1,0 +1,16 @@
+{
+  "schema": "SOLVEX_DAISY_GENERATED_ARTIFACT_HASH_MANIFEST_V1",
+  "source_commit_sha": "733e7f66a58bd7a54cb9c6d463de4f0404f9f602",
+  "generated_at": "2026-11-02T05:10:30.600Z",
+  "verification_root_sha256": "a02dcad5a275eff60ee84c1ac6a9c91b2c5401665cfc7e11ac8e9d0ae13481ec",
+  "run_evidence_sha256": "04daa3e110520bd9cfd25b2b5cdf7c7cc63de2f7391942c2965fe1febf2c2360",
+  "artifact_sha256": {
+    "formal-aggregation.json": "63c9ad57e0796775c5012d3e3ad182732f94f1284276373f54a82f68bdf9b185",
+    "z3-120-formal-verification-summary.json": "2193f9ff65eb39a45d47465782226ec89f99f66cb30d8fba55501e989f0cdaee",
+    "daisy-brain-activation-gate.json": "2ff65b9984f87ea19cf29654d3cf790fedf86539f0cb96e9dc3c8247b73f7862",
+    "system-46-gates.json": "ad74ef607206264c67916a994b95d7d1a37477b2621e8b50ef1154d6097afa9f",
+    "execution-gates.json": "1463521a489371661e44a718d883b2e07ded5ecd163bdf08b57eb6f7b2d538a4",
+    "verify-120-aggregation-733e7f66a58b.json": "95e319f78235b057c96db31147943ff76508d647fbaedd7cc8e97e239e727d66"
+  },
+  "missing_expected_artifacts": []
+}

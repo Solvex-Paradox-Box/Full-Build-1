@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BLOCKED",
+  "reason": "Activation blocked until formal corpus, adversarial checks, and all 46 system gates pass; no provider or blocked gate may be excluded.",
+  "commit_sha": "733e7f66a58bd7a54cb9c6d463de4f0404f9f602",
+  "source_commit_sha": "733e7f66a58bd7a54cb9c6d463de4f0404f9f602",
+  "verification_root_sha256": "a02dcad5a275eff60ee84c1ac6a9c91b2c5401665cfc7e11ac8e9d0ae13481ec",
+  "run_evidence_sha256": "04daa3e110520bd9cfd25b2b5cdf7c7cc63de2f7391942c2965fe1febf2c2360",
+  "timestamp": "2026-11-02T05:10:30.561Z",
+  "corpus": {
+    "total_required": 120,
+    "dfrl_required": 88,
+    "dh_required": 32,
+    "executed": 120,
+    "deterministic_replays": 120,
+    "unknown": 0,
+    "errors": 0,
+    "dfrl_cases_valid": true,
+    "dh_cases_valid": true,
+    "passed_120": true,
+    "sat_case_identities_match": true
+  },
+  "adversarial_verification": {
+    "passed": true,
+    "dfrl_mutation": true,
+    "dfrl_failure_injection": true,
+    "dfrl_tamper_alarm": true
+  },
+  "mandatory_gates": {
+    "total": 46,
+    "observed": 46,
+    "passed": 42,
+    "failed": 0,
+    "blocked": 3,
+    "external_provider_required": 1,
+    "non_passed": 4
+  }
+}

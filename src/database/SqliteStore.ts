@@ -9,6 +9,7 @@ export class SqliteStore {
   private static instance: SqliteStore | null = null;
   private db: SqliteDbInterface;
   private tables: Map<string, any[]> = new Map();
+  private diskBacked = false;
 
   private constructor() {
     this.db = this.initDatabase();
@@ -23,14 +24,18 @@ export class SqliteStore {
   }
 
   private initDatabase(): SqliteDbInterface {
-    // Attempt native node:sqlite if available in node
+    // Load the native backend in Node ESM without requiring browser polyfills.
     try {
-      // @ts-ignore
-      if (typeof window === 'undefined' && typeof require === 'function') {
-        // @ts-ignore
-        const nodeSqlite = require('node:sqlite');
-        if (nodeSqlite && nodeSqlite.DatabaseSync) {
+      if (typeof window === 'undefined' && typeof process !== 'undefined') {
+        const nodeProcess = process as NodeJS.Process & { getBuiltinModule?: (id: string) => any };
+        const nodeSqlite = nodeProcess.getBuiltinModule?.('node:sqlite') ??
+          (typeof require === 'function' ? require('node:sqlite') : null);
+        if (nodeSqlite?.DatabaseSync) {
+          const nodeFs = nodeProcess.getBuiltinModule?.('node:fs') ??
+            (typeof require === 'function' ? require('node:fs') : null);
+          nodeFs?.mkdirSync('./.sovereign_data', { recursive: true });
           const db = new nodeSqlite.DatabaseSync('./.sovereign_data/sovereign.sqlite');
+          this.diskBacked = true;
           return {
             exec: (sql: string) => db.exec(sql),
             all: (sql: string, params: any[] = []) => db.prepare(sql).all(...params),
@@ -107,6 +112,10 @@ export class SqliteStore {
 
   public getRawDb(): SqliteDbInterface {
     return this.db;
+  }
+
+  public isDiskBacked(): boolean {
+    return this.diskBacked;
   }
 
   private runMigrations(): void {

@@ -30,6 +30,7 @@ export interface ReplayVerificationRecord {
   operator_id: string;
   original_execution_id: string;
   replay_execution_id: string;
+  cleanroom_context_id: string;
   original_assertion_hash: string;
   replay_assertion_hash: string;
   original_result: string;
@@ -254,6 +255,7 @@ export class DFRLFormalVerifier {
     originalResult: DFRLVerificationResult
   ): Promise<ReplayVerificationRecord> {
     const replayExecId = `replay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const cleanroomContextId = 'dfrl_cleanroom_context';
     const z3Mod = await this.getZ3Module();
 
     if (!z3Mod) {
@@ -261,6 +263,7 @@ export class DFRLFormalVerifier {
         operator_id: item.code,
         original_execution_id: originalResult.execution_id,
         replay_execution_id: replayExecId,
+        cleanroom_context_id: cleanroomContextId,
         original_assertion_hash: originalResult.actual_smt_assertion_hash,
         replay_assertion_hash: computeSha256(item.z3_smt_assertion),
         original_result: originalResult.solver_result,
@@ -295,6 +298,7 @@ export class DFRLFormalVerifier {
       operator_id: item.code,
       original_execution_id: originalResult.execution_id,
       replay_execution_id: replayExecId,
+      cleanroom_context_id: cleanroomContextId,
       original_assertion_hash: originalResult.actual_smt_assertion_hash,
       replay_assertion_hash: computeSha256(item.z3_smt_assertion),
       original_result: originalResult.solver_result,
@@ -469,7 +473,8 @@ export class DFRLFormalVerifier {
       formal_invariant: 'Syntax error must fail closed and never prove UNSAT.',
       machine_checked_status: 'VERIFIED',
       z3_smt_assertion: '(assert (this_is_an_undefined_operator 123 456))',
-      proof_bundle_ref: 'PB-FAULT-001'
+      proof_bundle_ref: 'PB-FAULT-001',
+      expected_solver_result: 'unsat'
     };
 
     const res = await this.verifyProposition(malformedItem);

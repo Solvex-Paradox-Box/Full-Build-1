@@ -490,8 +490,16 @@ export class DHFormalVerifier {
    */
   public runArtifactTamperTest(report: DH32VerificationReport): DHTamperTestResult {
     const originalRootHash = report.verification_root_sha256;
-    const tamperedRootHash = originalRootHash.replace(/[0-9a-f]/, (c) => (c === 'a' ? 'b' : 'a'));
-    const tamperDetected = tamperedRootHash !== originalRootHash;
+    const rootHashFor = (results: DHFormalVerificationResult[]) => computeSha256(
+      results.map(r => `${r.case_id}:${r.contract_hash}:${r.evidence_hash}:${r.actual_result}`).join('|')
+    );
+    const originalRootVerified = rootHashFor(report.results) === originalRootHash;
+    const tamperedResults = report.results.map(result => ({ ...result }));
+    if (tamperedResults.length > 0) {
+      tamperedResults[0].actual_result = tamperedResults[0].actual_result === 'unsat' ? 'sat' : 'unsat';
+    }
+    const tamperedRootHash = rootHashFor(tamperedResults);
+    const tamperDetected = originalRootVerified && tamperedRootHash !== originalRootHash;
 
     return {
       test_name: 'DH Cryptographic Proof Manifest Tamper Detection',

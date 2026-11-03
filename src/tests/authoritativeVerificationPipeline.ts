@@ -133,10 +133,13 @@ export class AuthoritativeVerificationPipeline {
     // ==========================================
     const g0Start = performance.now();
     let modCount = 0;
+    let workingTreeClean = false;
     if (platform.execSync) {
       try {
         const gitStatus = platform.execSync('git status --porcelain', { encoding: 'utf8' });
-        modCount = gitStatus.trim().split('\n').filter(Boolean).length;
+        const statusLines = gitStatus.split(/\r?\n/).filter(Boolean);
+        modCount = statusLines.length;
+        workingTreeClean = statusLines.length === 0;
       } catch {}
     }
     recordGate(
@@ -144,12 +147,13 @@ export class AuthoritativeVerificationPipeline {
       'GATE-00',
       'Repository Integrity & Baseline Provenance',
       'LOCAL',
-      'PASSED',
+      workingTreeClean ? 'PASSED' : 'BLOCKED',
       performance.now() - g0Start,
       {
         execution_id: executionId,
         commit_sha: commitSha,
         modified_files_count: modCount,
+        working_tree_clean: workingTreeClean,
         runtime_mode: platform.execSync ? 'NODE_RUNTIME' : 'BROWSER_RUNTIME'
       }
     );
@@ -215,8 +219,8 @@ export class AuthoritativeVerificationPipeline {
     // GATE 4: Build / Compile
     // ==========================================
     const g4Start = performance.now();
-    let compileOk = true;
-    let compileErr: string | undefined = undefined;
+    let compileOk = false;
+    let compileErr: string | undefined = 'CLI typecheck was not executed';
     if (platform.execSync) {
       try {
         platform.execSync('npx tsc --noEmit', { stdio: 'pipe' });
@@ -225,14 +229,17 @@ export class AuthoritativeVerificationPipeline {
         compileErr = e.stdout?.toString() || e.stderr?.toString() || e.message;
       }
     }
+    const compileGateStatus: GateResult['status'] = !platform.execSync
+      ? 'BLOCKED'
+      : compileOk ? 'PASSED' : 'FAILED';
     recordGate(
       4,
       'GATE-04',
       'Build & TypeScript Static Verification',
       'LOCAL',
-      compileOk ? 'PASSED' : 'FAILED',
+      compileGateStatus,
       performance.now() - g4Start,
-      { typecheck: compileOk ? 'CLEAN' : 'ERRORS_FOUND', mode: platform.execSync ? 'CLI_TYPECHECK' : 'VITE_BUNDLE_VERIFIED' },
+      { typecheck: compileOk ? 'CLEAN' : platform.execSync ? 'ERRORS_FOUND' : 'NOT_VERIFIED', mode: platform.execSync ? 'CLI_TYPECHECK' : 'UNAVAILABLE' },
       compileErr
     );
 
@@ -248,7 +255,11 @@ export class AuthoritativeVerificationPipeline {
       'LOCAL',
       entRes.allPassed ? 'PASSED' : 'FAILED',
       performance.now() - g5Start,
-      { total_tests: entRes.totalTests, passed_tests: entRes.passedTests, pass_rate: '100%' },
+      {
+        total_tests: entRes.totalTests,
+        passed_tests: entRes.passedTests,
+        pass_rate: `${entRes.totalTests > 0 ? Math.round((entRes.passedTests / entRes.totalTests) * 100) : 0}%`
+      },
       entRes.allPassed ? undefined : 'Enterprise invariant failure'
     );
 
@@ -313,7 +324,17 @@ export class AuthoritativeVerificationPipeline {
     // GATE 7: Deterministic Cleanroom Replay
     // ==========================================
     const g7Start = performance.now();
-    const replayOk = dfrlReport.deterministic_replays_matched === 88;
+    const replayIds = dfrlReport.replays.map(replay => replay.operator_id);
+    const dfrlResultsById = new Map(dfrlReport.results.map(result => [result.operator_id, result]));
+    const replayOk = dfrlReport.replays.length === 88 && new Set(replayIds).size === 88 &&
+      dfrlReport.replays.every(replay => {
+        const original = dfrlResultsById.get(replay.operator_id);
+        return Boolean(original && replay.replay_match &&
+          replay.original_result === original.solver_result &&
+          replay.replay_result === original.solver_result &&
+          replay.original_assertion_hash === original.actual_smt_assertion_hash &&
+          replay.replay_assertion_hash === original.actual_smt_assertion_hash);
+      }) && dfrlReport.deterministic_replays_matched === 88;
     recordGate(
       7,
       'GATE-07',
@@ -322,10 +343,10 @@ export class AuthoritativeVerificationPipeline {
       replayOk ? 'PASSED' : 'FAILED',
       performance.now() - g7Start,
       {
-        total_operators_replayed: 88,
+        total_operators_replayed: dfrlReport.replays.length,
         replays_matched: dfrlReport.deterministic_replays_matched,
-        independent_contexts_reconstructed: 88,
-        bitrot_divergence: 0
+        independent_contexts_reconstructed: new Set(dfrlReport.replays.map(replay => replay.cleanroom_context_id)).size,
+        bitrot_divergence: dfrlReport.replays.filter(replay => !replay.replay_match).length
       }
     );
 
@@ -394,8 +415,8 @@ export class AuthoritativeVerificationPipeline {
         evidence_generated_nodes: nodeCoverage.evidence_generated_count,
         unsatisfied_node_ids: nodeCoverage.unsatisfied_node_ids,
         baseline_internal_18: nodeCoverage.internal_previously_covered,
-        expanded_internal_33: nodeCoverage.internal_newly_covered,
-        gateways_3: nodeCoverage.external_gateways,
+        expanded_internal_34: nodeCoverage.internal_newly_covered,
+        gateways_2: nodeCoverage.external_gateways,
         policy_interlocks_1: nodeCoverage.policy_interlocks
       }
     );
@@ -748,7 +769,8 @@ ${entRes.results.map(r => `| ${r.test_number.toString().padStart(2, '0')} | ${r.
     const g14Start = performance.now();
     const productionBlockers: string[] = [];
 
-    if (!compileOk) productionBlockers.push('GATE-04 TypeScript compilation errors detected.');
+    if (!platform.execSync) productionBlockers.push('GATE-04 TypeScript compilation was not executed by this runtime.');
+    else if (!compileOk) productionBlockers.push('GATE-04 TypeScript compilation errors detected.');
     if (!entRes.allPassed) productionBlockers.push('GATE-05 Enterprise invariant tests failed.');
     if (!dfrlOk) productionBlockers.push('GATE-06 DFRL SMT formal proofs failed.');
     if (!replayOk) productionBlockers.push('GATE-07 Deterministic replay divergence detected.');

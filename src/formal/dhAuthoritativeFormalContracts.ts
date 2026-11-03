@@ -792,9 +792,7 @@ const RAW_CONTRACTS: Array<Omit<DHAuthoritativeContract, 'contract_hash'>> = [
 ];
 
 export const AUTHORITATIVE_32_DH_CONTRACTS: DHAuthoritativeContract[] = RAW_CONTRACTS.map(c => {
-  const contractHash = computeSha256(
-    `${c.case_id}:${c.name}:${c.domain}:${c.formal_proposition}:${c.z3_smt_assertion}`
-  );
+  const contractHash = computeSha256(JSON.stringify(c));
   return {
     ...c,
     contract_hash: contractHash

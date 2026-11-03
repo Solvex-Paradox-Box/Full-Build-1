@@ -1,8 +1,8 @@
 {
   "manifest_version": "1.0.0-PROD",
-  "execution_id": "exec_pipeline_1792683102844",
-  "commit_sha": "728625581c2f89210c752d03fda0a154812b2366",
-  "timestamp": "2026-10-22T15:31:53.081Z",
+  "execution_id": "exec_pipeline_1793596218468",
+  "commit_sha": "733e7f66a58bd7a54cb9c6d463de4f0404f9f602",
+  "timestamp": "2026-11-02T05:10:29.758Z",
   "environment": "local",
   "claim_scope": "LOCAL_VERIFIED / MODEL_VERIFIED",
   "daisy_nodes": {
@@ -20,7 +20,7 @@
     "authored": 20,
     "generated": 68,
     "cleanroom_replays": 88,
-    "root_hash": "bdf4a458cd8d663a9bf691b6d62ce56df231165d5103d8a5d320cee9b89a1780"
+    "root_hash": "4ba83a779aaddd54c683e7bda2748cc73c0acc665b5f74861a278b0db77b8c86"
   },
   "enterprise_invariants": {
     "total": 30,
@@ -33,8 +33,8 @@
     "merkle_audit_chain": true
   },
   "gateways": {
-    "neon": "CONFIGURED",
-    "paypal": "CONFIGURED",
+    "neon": "EXTERNAL_PROVIDER_REQUIRED",
+    "paypal": "CONFIGURATION_REQUIRED",
     "stripe": "PROHIBITED_BLOCKED"
   }
 }
