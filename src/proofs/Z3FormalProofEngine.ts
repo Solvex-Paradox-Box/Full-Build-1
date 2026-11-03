@@ -96,10 +96,10 @@ export const THEOREM_CATALOG: TheoremCatalogItem[] = [
   },
   {
     id: 'THM-INDUCTIVE-TERMINATION-05',
-    name: 'Inductive Bounded Termination (NOPOT Well-Founded Ranking)',
+    name: 'Natural-Number Decrement Ranking Step (NOPOT)',
     domain: 'PROGRAM_VERIFICATION',
     category: 'TERMINATION',
-    description: 'Proves by SMT induction that the integer decrement transition strictly decreases ranking metric V(s)=s and is bounded below.',
+    description: 'Checks one symbolic integer decrement transition: the next natural-number state is strictly smaller and remains non-negative.',
     claim: 'forall s > 0, (s_next = s - 1) => (s_next < s AND s_next >= 0). Negation is unsatisfiable.',
     smt_script: `
 (declare-const s Int)
@@ -113,7 +113,7 @@ export const THEOREM_CATALOG: TheoremCatalogItem[] = [
 (check-sat)
 `.trim(),
     expected_solver_result: 'unsat',
-    proved_interpretation: 'UNSAT: Theorem proved. No counterexample exists in infinite state space; termination in finite steps is mathematically guaranteed.'
+    proved_interpretation: 'UNSAT: No counterexample exists to strict decrease and non-negativity for a single decrement transition. This local ranking-step lemma does not verify arbitrary program control flow or prove that submitted source follows this transition.'
   } as any,
   {
     id: 'THM-ZENO-ARCHIMEDEAN-06',
