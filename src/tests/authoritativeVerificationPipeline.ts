@@ -224,6 +224,8 @@ export class AuthoritativeVerificationPipeline {
     if (platform.execSync) {
       try {
         platform.execSync('npx tsc --noEmit', { stdio: 'pipe' });
+        compileOk = true;
+        compileErr = undefined;
       } catch (e: any) {
         compileOk = false;
         compileErr = e.stdout?.toString() || e.stderr?.toString() || e.message;
