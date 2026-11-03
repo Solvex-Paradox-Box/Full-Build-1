@@ -522,45 +522,55 @@ export class AuthoritativeVerificationPipeline {
     const zenoCode = 'export function zenoStep(dist: number, eps: number) { return dist < eps ? 0 : dist / 2; }';
     const pipeRes = await pipe.runPipeline('DFRL-P-024', zenoCode);
 
-    const testOrderId = 'e2e_order_' + Date.now();
-    const sqliteInst = SqliteStore.getInstance();
-    sqliteInst.insertTenantRecord('orders', 'TENANT_ENTERPRISE_DEMO', {
-      id: testOrderId,
-      title: 'E2E Verified Delivery Order',
-      solution_id: pipeRes.solution_id || 'DH-S-001',
-      price: 2500,
-      currency: 'USD',
-      status: 'OFFER',
-      created_at: Date.now()
-    });
+    const pipelineComplete = pipeRes.overall_success &&
+      pipeRes.completed_stages === pipeRes.total_stages;
+    let testOrderId = '';
+    let actualFinalStatus = 'NOT_CREATED';
+    let successfulTransitions: string[] = [];
+    let transitionAttempts: Array<{ target_state: string; success: boolean; error?: string }> = [];
+    let lifecycleBlocked = !pipelineComplete;
+    let lifecycleGateStatus: GateResult['status'] = 'BLOCKED';
+    let lifecycleAuditAction = 'LIFECYCLE_BLOCKED';
 
-    const orderMgr = OrderLifecycleManager.getInstance();
-    const plannedTransitions = ['ORDER_CREATED', 'ESCROW_FUNDED', 'SANDBOX_PROVISIONED', 'REPLAY_VERIFIED', 'DEPLOYED'] as const;
-    const transitionAttempts: Array<{ target_state: string; success: boolean; error?: string }> = [];
-    for (const targetState of plannedTransitions) {
-      const result = orderMgr.transitionOrder(testOrderId, targetState);
-      transitionAttempts.push({ target_state: targetState, success: result.success, error: result.error });
-      // Stop immediately at the first failed authorization or state transition.
-      if (!result.success) break;
+    if (!pipelineComplete) {
+      // Do not create even a synthetic order when solution verification has
+      // not completed every declared stage.
+      lifecycleBlocked = true;
+    } else {
+      testOrderId = 'e2e_order_' + Date.now();
+      const sqliteInst = SqliteStore.getInstance();
+      sqliteInst.insertTenantRecord('orders', 'TENANT_ENTERPRISE_DEMO', {
+        id: testOrderId,
+        title: 'E2E Verified Delivery Order',
+        solution_id: pipeRes.solution_id!,
+        price: 2500,
+        currency: 'USD',
+        status: 'OFFER',
+        created_at: Date.now()
+      });
+
+      const orderMgr = OrderLifecycleManager.getInstance();
+      const plannedTransitions = ['ORDER_CREATED', 'ESCROW_FUNDED', 'SANDBOX_PROVISIONED', 'REPLAY_VERIFIED', 'DEPLOYED'] as const;
+      for (const targetState of plannedTransitions) {
+        const result = orderMgr.transitionOrder(testOrderId, targetState);
+        transitionAttempts.push({ target_state: targetState, success: result.success, error: result.error });
+        if (!result.success) break;
+      }
+
+      const finalOrderRow = sqliteInst.getRawDb().get(
+        'SELECT status FROM orders WHERE tenant_id = ? AND id = ?',
+        ['TENANT_ENTERPRISE_DEMO', testOrderId]
+      );
+      actualFinalStatus = String(finalOrderRow?.status ?? 'UNKNOWN');
+      successfulTransitions = transitionAttempts.filter(t => t.success).map(t => t.target_state);
+      const transitionsComplete = transitionAttempts.length === plannedTransitions.length &&
+        transitionAttempts.every(t => t.success) && actualFinalStatus === 'DEPLOYED';
+      lifecycleBlocked = !transitionsComplete && transitionAttempts.some(t =>
+        !t.success && /BLOCKED: verified identity and signed tenant claims are required/i.test(t.error || '')
+      );
+      lifecycleGateStatus = transitionsComplete ? 'PASSED' : lifecycleBlocked ? 'BLOCKED' : 'FAILED';
+      lifecycleAuditAction = transitionsComplete ? 'LIFECYCLE_COMPLETED' : lifecycleBlocked ? 'LIFECYCLE_BLOCKED' : 'LIFECYCLE_FAILED';
     }
-
-    const finalOrderRow = sqliteInst.getRawDb().get('SELECT status FROM orders WHERE id = ?', [testOrderId]);
-    const actualFinalStatus = String(finalOrderRow?.status ?? 'UNKNOWN');
-    const successfulTransitions = transitionAttempts.filter(t => t.success).map(t => t.target_state);
-    const e2eOk = pipeRes.overall_success &&
-      pipeRes.completed_stages === 21 &&
-      transitionAttempts.length === plannedTransitions.length &&
-      transitionAttempts.every(t => t.success) &&
-      actualFinalStatus === 'DEPLOYED';
-    const lifecycleBlocked = !e2eOk && transitionAttempts.some(t =>
-      !t.success && /BLOCKED: verified identity and signed tenant claims are required/i.test(t.error || '')
-    );
-    const lifecycleGateStatus: GateResult['status'] = e2eOk
-      ? 'PASSED'
-      : lifecycleBlocked ? 'BLOCKED' : 'FAILED';
-    const lifecycleAuditAction = e2eOk
-      ? 'LIFECYCLE_COMPLETED'
-      : lifecycleBlocked ? 'LIFECYCLE_BLOCKED' : 'LIFECYCLE_FAILED';
 
     const durableInst = DurableStore.getInstance();
     const e2eAudit = durableInst.appendAudit(
@@ -568,14 +578,17 @@ export class AuthoritativeVerificationPipeline {
       'E2E_VERIFIER',
       lifecycleAuditAction,
       'ORDER',
-      testOrderId,
+      testOrderId || 'NOT_CREATED_PIPELINE_BLOCKED',
       {
         pipeline_stages: pipeRes.completed_stages,
-        planned_transitions: plannedTransitions,
+        pipeline_total_stages: pipeRes.total_stages,
+        pipeline_rejection_reason: pipeRes.rejection_reason || null,
+        planned_transitions: pipelineComplete ? ['ORDER_CREATED', 'ESCROW_FUNDED', 'SANDBOX_PROVISIONED', 'REPLAY_VERIFIED', 'DEPLOYED'] : [],
         transition_attempts: transitionAttempts,
         successful_transitions: successfulTransitions,
         final_order_status: actualFinalStatus,
         authorization_blocked: lifecycleBlocked,
+        order_creation_skipped: !pipelineComplete,
         payment_processing: 'DISABLED',
         claim_scope: 'LOCAL'
       }
@@ -593,13 +606,14 @@ export class AuthoritativeVerificationPipeline {
           success: pipeRes.overall_success,
           completed_stages: pipeRes.completed_stages,
           total_stages: pipeRes.total_stages,
-          solution_id: pipeRes.solution_id
+          solution_id: pipeRes.solution_id,
+          rejection_reason: pipeRes.rejection_reason
         },
         order_lifecycle: {
-          order_id: testOrderId,
-          planned_transitions: plannedTransitions,
-          transition_attempts: transitionAttempts,
+          order_created: Boolean(testOrderId),
+          order_id: testOrderId || null,
           transitions_executed: successfulTransitions,
+          transition_attempts: transitionAttempts,
           final_status: actualFinalStatus,
           authorization_blocked: lifecycleBlocked,
           payment_processing: 'DISABLED'
@@ -609,7 +623,8 @@ export class AuthoritativeVerificationPipeline {
           record_id: e2eAudit.id,
           record_hash: e2eAudit.record_hash
         }
-      }
+      },
+      pipelineComplete ? undefined : pipeRes.rejection_reason
     );
 
     // ==========================================
