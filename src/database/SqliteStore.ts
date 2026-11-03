@@ -250,7 +250,12 @@ export class SqliteStore {
       status: data.status || 'ACTIVE'
     };
 
+    const incomingTenantId = payload.tenant_id ?? null;
     if (this.diskBacked) {
+      const existing = this.db.get(`SELECT tenant_id FROM ${table} WHERE id = ?`, [payload.id]);
+      if (existing && (existing.tenant_id ?? null) !== incomingTenantId) {
+        throw new Error(`Tenant-scoped primary-key collision rejected for ${table} [${payload.id}].`);
+      }
       this.db.run(
         `INSERT INTO ${table} (id, tenant_id, created_at, updated_at, status, version, data_json)
          VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -263,7 +268,7 @@ export class SqliteStore {
            data_json = excluded.data_json`,
         [
           payload.id,
-          payload.tenant_id ?? null,
+          incomingTenantId,
           payload.created_at,
           payload.updated_at,
           payload.status,
@@ -277,6 +282,9 @@ export class SqliteStore {
     const rows = this.tables.get(table)!;
     const existingIndex = rows.findIndex(r => r.id === payload.id);
     if (existingIndex >= 0) {
+      if ((rows[existingIndex].tenant_id ?? null) !== incomingTenantId) {
+        throw new Error(`Tenant-scoped primary-key collision rejected for ${table} [${payload.id}].`);
+      }
       rows[existingIndex] = { ...rows[existingIndex], ...payload };
     } else {
       rows.unshift(payload);
