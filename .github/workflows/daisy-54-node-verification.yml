@@ -24,6 +24,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: TypeScript application typecheck
         run: bun run lint
+      - name: Verify Z3 receipt authenticity and proof-bundle sealing
+        run: bun run test:z3-receipt
       - name: Enterprise invariant and fail-closed tests
         run: bun run verify:enterprise
       - name: Verify canonical 54-node registry and executor mapping
