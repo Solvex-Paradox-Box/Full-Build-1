@@ -36,14 +36,10 @@ export class ReversibilityEngine {
     return this.durableStore.createCheckpoint(tenantId, targetMutation, classification);
   }
 
-  public executeRollback(checkpointId: string, reason: string): { success: boolean; error?: string } {
-    return this.durableStore.rollbackToCheckpoint(checkpointId, reason);
-  }
-
-  private executeRollbackForTenant(checkpointId: string, reason: string, tenantId: string): { success: boolean; error?: string } {
+  public executeRollback(checkpointId: string, reason: string, tenantId: string): { success: boolean; error?: string } {
     const checkpoint = this.durableStore.getState().checkpoints[checkpointId];
     if (!checkpoint || checkpoint.tenant_id !== tenantId) {
-      return { success: false, error: 'Checkpoint tenant does not match failure tenant.' };
+      return { success: false, error: 'Checkpoint tenant does not match rollback tenant.' };
     }
     return this.durableStore.rollbackToCheckpoint(checkpointId, reason);
   }
@@ -61,7 +57,7 @@ export class ReversibilityEngine {
     let rollbackStatus: 'ROLLED_BACK' | 'FAILED' | 'REJECTED' = 'REJECTED';
 
     if (checkpointId) {
-      const rollback = this.executeRollbackForTenant(checkpointId, `Automatic fail-closed diversion: ${triggerReason}`, tenantId);
+      const rollback = this.executeRollback(checkpointId, `Automatic fail-closed diversion: ${triggerReason}`, tenantId);
       rollbackStatus = rollback.success ? 'ROLLED_BACK' : 'FAILED';
     }
 
