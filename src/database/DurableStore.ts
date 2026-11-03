@@ -242,15 +242,16 @@ export class DurableStore {
     if (auditRows.length) this.state.audit_chain = auditRows;
   }
 
-  private persistMap<T extends Record<string, any>>(table: string, records: Record<string, T>): void {
+  private persistMap<T>(table: string, records: Record<string, T>): void {
     const sqlite = SqliteStore.getInstance();
     for (const [key, value] of Object.entries(records)) {
-      const id = String(value.id || (value as any).offer_id || key);
-      sqlite.insertRecord(table, { ...value, id });
+      const row = value as any;
+      const id = String(row.id || row.offer_id || key);
+      sqlite.insertRecord(table, { ...row, id });
     }
   }
 
-  private deleteRemovedRows<T extends Record<string, any>>(
+  private deleteRemovedRows<T>(
     table: string,
     previous: Record<string, T>,
     restored: Record<string, T>
@@ -258,9 +259,17 @@ export class DurableStore {
     const sqlite = SqliteStore.getInstance();
     for (const [key, value] of Object.entries(previous)) {
       if (!Object.prototype.hasOwnProperty.call(restored, key)) {
-        sqlite.deleteRecordById(table, String(value.id || (value as any).offer_id || key));
+        const row = value as any;
+        sqlite.deleteRecordById(table, String(row.id || row.offer_id || key));
       }
     }
+  }
+
+  public getPersistenceMode(): 'SQLITE_DISK' | 'BROWSER_LOCAL_STORAGE' | 'PROCESS_MEMORY_ONLY' {
+    const sqlite = SqliteStore.getInstance();
+    if (sqlite.isDiskBacked()) return 'SQLITE_DISK';
+    if (typeof window !== 'undefined' && Boolean(window.localStorage)) return 'BROWSER_LOCAL_STORAGE';
+    return 'PROCESS_MEMORY_ONLY';
   }
 
   public persist(): void {
