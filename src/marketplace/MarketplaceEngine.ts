@@ -20,7 +20,6 @@ export class MarketplaceEngine {
   private constructor() {
     this.durableStore = DurableStore.getInstance();
     this.sqlite = SqliteStore.getInstance();
-    this.bootstrapInitialOffers();
   }
 
   public static getInstance(): MarketplaceEngine {
@@ -28,21 +27,6 @@ export class MarketplaceEngine {
       MarketplaceEngine.instance = new MarketplaceEngine();
     }
     return MarketplaceEngine.instance;
-  }
-
-  private bootstrapInitialOffers(): void {
-    const state = this.durableStore.getState();
-    if (Object.keys(state.offers).length === 0) {
-      this.publishOffer(
-        'DH-S-001',
-        'PB-DH-S-001',
-        'Verified Zeno Geometric Convergence Suite (DH-S-001)',
-        'Machine-checked bounded O(log(1/eps)) continuous convergence core with NOPOT invariant seal and Lean4 kernel attestations.',
-        25000,
-        1.5,
-        'MEDIUM'
-      );
-    }
   }
 
   public calculateDefensiblePrice(
@@ -116,7 +100,6 @@ export class MarketplaceEngine {
       created_at: Date.now()
     };
 
-    state.offers[offerId] = offer;
     try {
       this.sqlite.insertRecord('offers', {
         id: offerId,
@@ -134,10 +117,18 @@ export class MarketplaceEngine {
         verification_status: 'VERIFIED',
         status: 'ACTIVE'
       });
-    } catch {}
-
-    this.durableStore.persist();
-    return { success: true, offer };
+      const persisted = this.sqlite.findTenantRecordById('offers', offer.tenant_id, offerId);
+      if (!persisted) throw new Error('Offer persistence read-back failed.');
+      state.offers[offerId] = offer;
+      this.durableStore.persist();
+      return { success: true, offer };
+    } catch (error) {
+      this.sqlite.deleteTenantRecord('offers', offer.tenant_id, offerId);
+      return {
+        success: false,
+        error: `Offer persistence failed closed: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
   }
 
   public createOrder(tenantId: string, offerId: string): { success: boolean; order?: any; error?: string } {
@@ -174,17 +165,23 @@ export class MarketplaceEngine {
         price_cents: order.price_cents,
         status: 'OFFER'
       });
-    } catch {}
-
-    this.durableStore.appendAudit(
-      tenantId,
-      'MARKETPLACE_ORDER_GATE',
-      'CREATE_ORDER',
-      'ORDER',
-      orderId,
-      { offerId, priceCents: order.price_cents }
-    );
-
-    return { success: true, order };
+      const persisted = this.sqlite.findTenantRecordById('orders', tenantId, orderId);
+      if (!persisted) throw new Error('Order persistence read-back failed.');
+      this.durableStore.appendAudit(
+        tenantId,
+        'MARKETPLACE_ORDER_GATE',
+        'CREATE_ORDER',
+        'ORDER',
+        orderId,
+        { offerId, priceCents: order.price_cents }
+      );
+      return { success: true, order };
+    } catch (error) {
+      this.sqlite.deleteTenantRecord('orders', tenantId, orderId);
+      return {
+        success: false,
+        error: `Order creation failed closed: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
   }
 }
