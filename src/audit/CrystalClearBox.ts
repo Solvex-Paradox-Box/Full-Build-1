@@ -8,6 +8,8 @@ export interface CustomerEvidenceView {
   proprietary_weights_redacted: boolean;
   internal_reasoning_redacted: boolean;
   public_audit_token: string;
+  public_audit_token_kind: 'UNSIGNED_SHA256_COMMITMENT';
+  public_audit_token_signed: false;
   verified_tests_count: number;
   formal_proofs_count: number;
   oracle_attestations_count: number;
@@ -34,6 +36,8 @@ export class CrystalClearBox {
       proprietary_weights_redacted: true,
       internal_reasoning_redacted: true,
       public_audit_token: publicToken,
+      public_audit_token_kind: 'UNSIGNED_SHA256_COMMITMENT',
+      public_audit_token_signed: false,
       verified_tests_count: bundle.tests ? bundle.tests.filter(t => t.passed).length : 0,
       formal_proofs_count: bundle.formal_proofs ? bundle.formal_proofs.filter(f => f.checked).length : 0,
       oracle_attestations_count: bundle.independent_oracles ? bundle.independent_oracles.filter(o => o.verified).length : 0,
