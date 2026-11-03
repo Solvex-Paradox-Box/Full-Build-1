@@ -20,7 +20,7 @@ const output = {
   scope: 'Credential-stripped local invocation of all 54 handlers. Provider adapters are inventory-only in this runner; no provider authentication or payment call is made.',
   total_nodes: report.total_nodes,
   executed_count: report.executed_count,
-  runtime_integrity_passed: report.total_nodes === 54 && report.executed_count === 54 && counts.FAIL === 0,
+  runtime_integrity_passed: report.total_nodes === 54 && report.registered_count === 54 && report.executed_count === 54 && report.unsatisfied_node_ids.length === 0 && counts.FAIL === 0,
   status_counts: counts,
   results: report.results.map(r => ({
     node_id: r.node_id,
