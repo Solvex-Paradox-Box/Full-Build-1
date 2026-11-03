@@ -268,7 +268,8 @@ export async function runEnterpriseVerification() {
   // 14. Pipeline runs its implemented static gates and stops at the absent sandbox.
   runTest('21-Stage Pipeline Stops at Unavailable Cleanroom Adapter', 'PIPELINE', async () => {
     const pipeline = SolutionPipeline.getInstance();
-    const result = await pipeline.runPipeline('DH-P-001', 'export function solve() { return true; }');
+    const missingProblemId = `missing_pipeline_problem_${Date.now()}`;
+    const result = await pipeline.runPipeline(missingProblemId, 'export function solve() { return true; }');
     if (result.overall_success) throw new Error('Pipeline claimed success without sandbox and downstream proof handlers');
     if (result.total_stages !== 21) throw new Error(`Expected 21 declared stages, got ${result.total_stages}`);
     if (result.stage_traces.length === 0) throw new Error('Pipeline emitted no stage trace');
@@ -311,7 +312,7 @@ export async function runEnterpriseVerification() {
     }
   });
 
-  // 15. Pipeline Fail-Closed Boundary Rejection
+  // 16. Pipeline Fail-Closed Boundary Rejection
   runTest('Pipeline Rejects Invalid TypeScript Before Any Later Stage', 'PIPELINE', async () => {
     const pipeline = SolutionPipeline.getInstance();
     const result = await pipeline.runPipeline('DH-P-001', 'export function broken( {');
@@ -323,7 +324,7 @@ export async function runEnterpriseVerification() {
     if (result.stage_traces.length !== 1) throw new Error('Pipeline continued after syntax failure');
   });
 
-  // 16. Defensible Pricing Formula v1.4 Determinism
+  // 17. Defensible Pricing Formula v1.4 Determinism
   runTest('Defensible Pricing Formula v1.4 Deterministic Execution', 'MARKETPLACE', () => {
     const market = MarketplaceEngine.getInstance();
     const p1 = market.calculateDefensiblePrice(10000, 1.5, 'MEDIUM');
@@ -339,7 +340,7 @@ export async function runEnterpriseVerification() {
     }
   });
 
-  // 16. Marketplace construction must not seed a fabricated sample offer.
+  // 18. Marketplace construction must not seed a fabricated sample offer.
   runTest('Marketplace Does Not Bootstrap Unverified Sample Offers', 'MARKETPLACE', () => {
     const market = MarketplaceEngine.getInstance();
     const offers = DurableStore.getInstance().getState().offers;
