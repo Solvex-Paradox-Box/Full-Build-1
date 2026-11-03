@@ -1,6 +1,7 @@
 import { computeSha256, OfferEntity } from '../database/DatabaseSchema';
 import { DurableStore } from '../database/DurableStore';
 import { SqliteStore } from '../database/SqliteStore';
+import { AuthService, UserContext } from '../auth/AuthService';
 
 export interface DefensiblePriceResult {
   cost_basis_cents: number;
@@ -60,8 +61,13 @@ export class MarketplaceEngine {
     description: string,
     costBasisCents: number,
     complexityFactor: number,
-    riskClass: 'LOW' | 'MEDIUM' | 'HIGH'
+    riskClass: 'LOW' | 'MEDIUM' | 'HIGH',
+    identity?: UserContext
   ): { success: boolean; offer?: OfferEntity; error?: string } {
+    const authorization = AuthService.getInstance().authorize(identity, 'PUBLISH_OFFER', 'TENANT_SOVEREIGN_ROOT');
+    if (!authorization.authorized) {
+      return { success: false, error: authorization.reason };
+    }
     const state = this.durableStore.getState();
     const solution = state.solutions[solutionId];
     const bundle = state.proof_bundles[proofBundleId];
@@ -123,6 +129,7 @@ export class MarketplaceEngine {
       this.durableStore.persist();
       return { success: true, offer };
     } catch (error) {
+      delete state.offers[offerId];
       this.sqlite.deleteTenantRecord('offers', offer.tenant_id, offerId);
       return {
         success: false,
@@ -131,7 +138,11 @@ export class MarketplaceEngine {
     }
   }
 
-  public createOrder(tenantId: string, offerId: string): { success: boolean; order?: any; error?: string } {
+  public createOrder(tenantId: string, offerId: string, identity?: UserContext): { success: boolean; order?: any; error?: string } {
+    const authorization = AuthService.getInstance().authorize(identity, 'CREATE_ORDER', tenantId);
+    if (!authorization.authorized) {
+      return { success: false, error: authorization.reason };
+    }
     const state = this.durableStore.getState();
     const offer = state.offers[offerId];
 
