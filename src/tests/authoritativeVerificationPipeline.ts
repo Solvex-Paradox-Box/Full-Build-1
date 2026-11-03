@@ -400,12 +400,21 @@ export class AuthoritativeVerificationPipeline {
     // ==========================================
     const g9Start = performance.now();
     const nodeCoverage = await runDaisy54NodeCoverage();
+    const nodeRuntimeIntegrityPassed =
+      nodeCoverage.total_nodes === 54 &&
+      nodeCoverage.registered_count === 54 &&
+      nodeCoverage.executed_count === 54 &&
+      nodeCoverage.unsatisfied_node_ids.length === 0 &&
+      nodeCoverage.results.every(result => result.status !== 'FAIL');
+    const nodeGateStatus: GateResult['status'] = nodeCoverage.all_passed
+      ? 'PASSED'
+      : nodeRuntimeIntegrityPassed ? 'BLOCKED' : 'FAILED';
     recordGate(
       9,
       'GATE-09',
       'Daisy 54-Node Architecture CUJ Execution Coverage',
       'LOCAL',
-      nodeCoverage.all_passed ? 'PASSED' : 'FAILED',
+      nodeGateStatus,
       performance.now() - g9Start,
       {
         total_nodes: nodeCoverage.total_nodes,
@@ -792,7 +801,11 @@ ${entRes.results.map(r => `| ${r.test_number.toString().padStart(2, '0')} | ${r.
     if (!dfrlOk) productionBlockers.push('GATE-06 DFRL SMT formal proofs failed.');
     if (!replayOk) productionBlockers.push('GATE-07 Deterministic replay divergence detected.');
     if (!g8Passed) productionBlockers.push('GATE-08 Mutation, failure injection, or tamper alarm failed.');
-    if (!nodeCoverage.all_passed) productionBlockers.push('GATE-09 Daisy 54-node CUJ coverage failed.');
+    if (!nodeRuntimeIntegrityPassed) {
+      productionBlockers.push('GATE-09 Daisy 54-node handler execution integrity failed.');
+    } else if (!nodeCoverage.all_passed) {
+      productionBlockers.push('GATE-09 handlers executed, but one or more subsystems remain FAIL_CLOSED, PROVIDER_REQUIRED, or PROHIBITED_BLOCKED; functional readiness is not established.');
+    }
     if (!persistRep.all_local_passed) productionBlockers.push('GATE-10 Relational persistence or Merkle chain failed.');
     if (lifecycleBlocked) {
       productionBlockers.push('GATE-12 lifecycle blocked: trusted identity and signed tenant claims are unavailable; no order transition or deployment occurred.');
