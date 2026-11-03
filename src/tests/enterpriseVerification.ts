@@ -95,9 +95,16 @@ export async function runEnterpriseVerification() {
     try {
       sqlite.insertTenantRecord('problems', tenantA, { id: rowA, marker: 'A' });
       sqlite.insertTenantRecord('problems', tenantB, { id: rowB, marker: 'B' });
+      let crossTenantCollisionBlocked = false;
+      try {
+        sqlite.insertTenantRecord('problems', tenantB, { id: rowA, marker: 'OVERWRITE_ATTEMPT' });
+      } catch (error) {
+        crossTenantCollisionBlocked = error instanceof Error && error.message.includes('Tenant-scoped primary-key collision');
+      }
       const rowsA = sqlite.findTenantRecords<any>('problems', tenantA, 100);
       const rowsB = sqlite.findTenantRecords<any>('problems', tenantB, 100);
-      isolated = rowsA.some(row => row.id === rowA) &&
+      isolated = crossTenantCollisionBlocked &&
+        rowsA.some(row => row.id === rowA && row.marker === 'A') &&
         !rowsA.some(row => row.id === rowB || row.tenant_id === tenantB) &&
         rowsB.some(row => row.id === rowB) &&
         !rowsB.some(row => row.id === rowA || row.tenant_id === tenantA);
