@@ -616,6 +616,7 @@ export class DaisySubsystemExecutors {
         const attempt = lifecycle.transitionOrder(orderId, 'ORDER_CREATED');
         const storedOrder = sqlite.getRawDb().get('SELECT status FROM orders WHERE id = ?', [orderId]);
         const stateUnchanged = storedOrder?.status === 'OFFER';
+        sqlite.deleteTenantRecord('orders', 'TENANT_ROOT', orderId);
         const blockedAsRequired = !attempt.success &&
           /BLOCKED: verified identity and signed tenant claims are required/i.test(attempt.error || '') &&
           stateUnchanged;
