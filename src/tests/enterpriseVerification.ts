@@ -208,18 +208,20 @@ export async function runEnterpriseVerification() {
     }
   });
 
-  // 10. NOPOT Bounded Termination Formal Proof
-  runTest('NOPOT Bounded Termination Formal Proof Verification', 'PROOFS', () => {
-    const cert = NOPOTVerifier.verifyAlgorithmTermination(
-      'StrictlyDecreasingZenoLoop',
-      (x) => Math.floor(x / 2),
-      64,
-      100
-    );
-    if (!cert.termination_proved) throw new Error('NOPOT failed to prove termination');
-    if (!cert.strictly_decreasing) throw new Error('NOPOT variant function was not strictly decreasing');
+  // 10. NOPOT measured execution is paired with an actual Z3 theorem run.
+  runTest('NOPOT Bounded Termination Uses Actual Z3 Verification', 'PROOFS', async () => {
+    const { certificate: cert, z3Result } =
+      await NOPOTVerifier.verifyWithZ3Solver('BoundedNaturalNumberDecrement', 64);
+    if (!cert.termination_proved) throw new Error('Measured decrement execution did not reach zero');
+    if (!cert.strictly_decreasing) throw new Error('Measured ranking value did not strictly decrease');
+    if (cert.actual_measured_steps !== 64) throw new Error(`Expected 64 measured decrement steps, got ${cert.actual_measured_steps}`);
     if (cert.actual_measured_steps > cert.bounded_steps_upper_bound) {
       throw new Error('Measured steps exceeded upper bound');
+    }
+    if (!cert.formal_smt_verification?.verified_by_z3 ||
+        z3Result.solver_result !== 'unsat' || !z3Result.proved ||
+        z3Result.theorem_id !== 'THM-INDUCTIVE-TERMINATION-05') {
+      throw new Error(`Actual Z3 termination proof did not verify: ${z3Result.solver_result}`);
     }
   });
 
