@@ -41,7 +41,7 @@ export class ReversibilityEngine {
     if (!checkpoint || checkpoint.tenant_id !== tenantId) {
       return { success: false, error: 'Checkpoint tenant does not match rollback tenant.' };
     }
-    return this.durableStore.rollbackToCheckpoint(checkpointId, reason);
+    return this.durableStore.rollbackToCheckpoint(checkpointId, reason, tenantId);
   }
 
   public divertFailure(
