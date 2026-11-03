@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit",
     "test:formal-hash": "tsx scripts/test_formal_evidence_hash.ts",
     "test:local-inference": "tsx scripts/test_local_inference_runtime.ts",
+    "test:z3-receipt": "tsx scripts/test_z3_receipt_integrity.ts",
     "preflight": "tsx scripts/preflight.ts",
     "verify:enterprise": "tsx scripts/verify_enterprise.ts",
     "verify:dfrl": "tsx scripts/verify_dfrl.ts",
