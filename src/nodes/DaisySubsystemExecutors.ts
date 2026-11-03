@@ -240,7 +240,7 @@ export class DaisySubsystemExecutors {
       // 11. DN-11: 21-Stage Problem Pipeline
       case 'DN-11': {
         const pipe = SolutionPipeline.getInstance();
-        const res = pipe.runPipeline('DH-P-001', 'export function solve() { return true; }');
+        const res = await pipe.runPipeline('DH-P-001', 'export function solve() { return true; }');
         return {
           node_id: 'DN-11',
           name: '21-Stage Problem Pipeline',
@@ -256,8 +256,8 @@ export class DaisySubsystemExecutors {
       // 12. DN-12: Fail-Closed Circuit Breaker
       case 'DN-12': {
         const pipe = SolutionPipeline.getInstance();
-        const res = pipe.runPipeline('DH-P-001', '/* FAIL_STAGE_9 */ return false;');
-        const stopped = res.rejection_reason?.includes('Sentinel detected fatal specification anomaly') === true;
+        const res = await pipe.runPipeline('DH-P-001', '/* FAIL_STAGE_9 */ return false;');
+        const stopped = res.stage_traces.some(trace => trace.status === 'FAILED' || trace.status === 'BLOCKED') && res.completed_stages < res.total_stages;
         return {
           node_id: 'DN-12',
           name: 'Fail-Closed Circuit Breaker',
@@ -266,7 +266,7 @@ export class DaisySubsystemExecutors {
           claim_scope: 'LOCAL',
           status: stopped ? 'SUCCESS' : 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { circuit_tripped: stopped, stopped_at_stage: res.completed_stages, blocker: res.rejection_reason }
+          evidence: { circuit_tripped: stopped, stopped_at_stage: res.stage_traces[res.stage_traces.length - 1]?.stage ?? 0, blocker: res.rejection_reason }
         };
       }
 
