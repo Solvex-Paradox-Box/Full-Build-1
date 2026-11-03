@@ -135,10 +135,10 @@ export const THEOREM_CATALOG: TheoremCatalogItem[] = [
   },
   {
     id: 'THM-BYZANTINE-07',
-    name: 'Byzantine Agreement (Lamport 3m+1 Impossibility Invariant)',
+    name: 'Contradictory Consensus Values Violate Agreement Invariant',
     domain: 'DISTRIBUTED_CONSENSUS',
-    description: 'Proves that 3 nodes cannot achieve symmetric consensus under 1 traitor without cryptographic signatures.',
-    claim: 'Inconsistent traitor messages violate symmetric consensus agreement.',
+    description: 'Checks a toy agreement constraint against two explicitly conflicting observed values; it is not a full Byzantine consensus model.',
+    claim: 'Given v1 = 0 and v2 = 1, the agreement invariant v1 = v2 is unsatisfiable.',
     smt_script: `
 (declare-const v0 Int)
 (declare-const v1 Int)
@@ -153,7 +153,7 @@ export const THEOREM_CATALOG: TheoremCatalogItem[] = [
 (check-sat)
 `.trim(),
     expected_solver_result: 'unsat',
-    proved_interpretation: 'UNSAT: Theorem proved. Conflicting traitor observations cannot satisfy loyal consensus agreement without cryptographic authenticity.'
+    proved_interpretation: 'UNSAT: The supplied contradictory values cannot satisfy equality. This does not establish the general Byzantine fault-tolerance bound or a distributed consensus impossibility theorem.'
   },
   {
     id: 'THM-PIGEONHOLE-08',
