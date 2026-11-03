@@ -164,7 +164,7 @@ export async function runEnterpriseVerification() {
       created_at: Date.now()
     };
     if (!store.getState().problems['prob_mutated']) throw new Error('Mutation failed');
-    const rollback = store.rollbackToCheckpoint(checkpoint.id, 'Test rollback verification');
+    const rollback = store.rollbackToCheckpoint(checkpoint.id, 'Test rollback verification', 'TENANT_ROLLBACK');
     if (!rollback.success) throw new Error(`Rollback failed: ${rollback.error}`);
     if (store.getState().problems['prob_mutated']) {
       throw new Error('Mutated entity still present after rollback execution!');
