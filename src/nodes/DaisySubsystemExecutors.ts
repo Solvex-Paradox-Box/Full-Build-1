@@ -107,16 +107,38 @@ export class DaisySubsystemExecutors {
 
       // 4. DN-04: NOPOT Bounded Termination Engine
       case 'DN-04': {
-        const cert = NOPOTVerifier.verifyAlgorithmTermination('ZenoHalving', (x) => Math.floor(x / 2), 64, 100);
+        // The catalog theorem proves a decrementing natural-number ranking.
+        // Match the measured transition to that theorem; do not label a
+        // different algorithm (e.g. halving) as formally proved by it.
+        const initialState = 64;
+        const { certificate: cert, z3Result } =
+          await NOPOTVerifier.verifyWithZ3Solver('BoundedNaturalNumberDecrement', initialState);
+        const measuredRunValid =
+          cert.termination_proved &&
+          cert.actual_measured_steps === initialState &&
+          cert.strictly_decreasing &&
+          cert.formal_smt_verification?.verified_by_z3 === true &&
+          z3Result.solver_result === 'unsat' &&
+          z3Result.proved;
         return {
           node_id: 'DN-04',
           name: 'NOPOT Bounded Termination Engine',
           category: 'LOGIC_SOLVER',
           executed: true,
           claim_scope: 'MODEL',
-          status: cert.termination_proved ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: measuredRunValid ? 'SUCCESS' : 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { steps: cert.actual_measured_steps, bound: cert.bounded_steps_upper_bound }
+          evidence: {
+            algorithm: cert.target_algorithm,
+            initial_state: initialState,
+            measured_steps: cert.actual_measured_steps,
+            bound: cert.bounded_steps_upper_bound,
+            strictly_decreasing: cert.strictly_decreasing,
+            z3_theorem_id: z3Result.theorem_id,
+            z3_result: z3Result.solver_result,
+            z3_certificate_sha256: z3Result.certificate_sha256,
+            scope_limit: 'Z3 proves the catalog decrement invariant; measured execution covers this finite initial state only.'
+          }
         };
       }
 
