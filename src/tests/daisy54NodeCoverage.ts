@@ -46,13 +46,11 @@ export async function runDaisy54NodeCoverage(): Promise<NodeCoverageReport> {
     r => !r.registered || !r.instantiated || !r.reachable || !r.executed || !r.output_asserted || !r.evidence_generated
   );
 
-  const allExecuted = rawResults.results.every(r => r.executed === true);
-  const noUnexpectedFailures = rawResults.results.every(r =>
-    r.status === 'SUCCESS' ||
-    r.status === 'PROVIDER_REQUIRED' ||
-    r.status === 'PROHIBITED_BLOCKED' ||
-    r.status === 'FAIL_CLOSED'
-  );
+  // Invocation and fail-closed outcomes are not functional success.
+  // Provider-required and prohibited outcomes remain visible, but never count
+  // as successful subsystem operation.
+  const allFunctionallySuccessful = rawResults.results.every(r => r.status === 'SUCCESS');
+  const noExecutionErrors = rawResults.results.every(r => r.status !== 'FAIL');
 
   return {
     total_nodes: rawResults.total,
@@ -67,7 +65,7 @@ export async function runDaisy54NodeCoverage(): Promise<NodeCoverageReport> {
     internal_newly_covered: expandedResults.length,
     external_gateways: gatewayResults.length,
     policy_interlocks: rawResults.results.filter(r => r.status === 'PROHIBITED_BLOCKED').length,
-    all_passed: allExecuted && noUnexpectedFailures && unsatisfied.length === 0,
+    all_passed: allFunctionallySuccessful && noExecutionErrors && unsatisfied.length === 0,
     results: rawResults.results,
     breakdown: {
       baseline_internal_18: baselineResults,
