@@ -171,6 +171,41 @@ export async function runEnterpriseVerification() {
     }
   });
 
+  // 7. Global snapshots must not roll back another tenant's records.
+  runTest('Checkpoint Rollback Blocks Cross-Tenant Snapshot Scope', () => {
+    const store = DurableStore.getInstance();
+    const suffix = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const problemA = `checkpoint_A_${suffix}`;
+    const problemB = `checkpoint_B_${suffix}`;
+    const makeProblem = (id: string, tenant_id: string) => ({
+      id, tenant_id, raw_problem: 'checkpoint scope test',
+      normalized_title: 'checkpoint scope test', domain: 'TEST',
+      detected_constraints: [], invariants: ['test invariant'],
+      status: 'INTAKE', created_at: Date.now()
+    });
+    store.getState().problems[problemA] = makeProblem(problemA, 'TENANT_CHECKPOINT_A');
+    store.getState().problems[problemB] = makeProblem(problemB, 'TENANT_CHECKPOINT_B');
+    store.persist();
+    const checkpoint = store.createCheckpoint('TENANT_CHECKPOINT_A', 'CROSS_TENANT_SCOPE_TEST');
+    try {
+      const result = store.rollbackToCheckpoint(checkpoint.id, 'Cross-tenant rollback rejection test');
+      if (result.success || !result.error?.includes('cross-tenant rollback is not permitted')) {
+        throw new Error('Global checkpoint snapshot was allowed to roll back across tenant boundaries');
+      }
+      if (!store.getState().problems[problemA] || !store.getState().problems[problemB]) {
+        throw new Error('Rejected cross-tenant rollback mutated tenant records');
+      }
+    } finally {
+      delete store.getState().problems[problemA];
+      delete store.getState().problems[problemB];
+      delete store.getState().checkpoints[checkpoint.id];
+      SqliteStore.getInstance().deleteRecordById('problems', problemA);
+      SqliteStore.getInstance().deleteRecordById('problems', problemB);
+      SqliteStore.getInstance().deleteRecordById('checkpoints', checkpoint.id);
+      store.persist();
+    }
+  });
+
   // 7. Irreversible Action Reversal Rejection Guard
   runTest('Irreversible Action Rollback Rejection Guard', 'PERSISTENCE', () => {
     const store = DurableStore.getInstance();
