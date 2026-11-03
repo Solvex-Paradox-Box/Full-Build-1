@@ -210,7 +210,7 @@ export async function runEnterpriseVerification() {
   runTest('Irreversible Action Rollback Rejection Guard', 'PERSISTENCE', () => {
     const store = DurableStore.getInstance();
     const checkpoint = store.createCheckpoint('TENANT_IRREVERSIBLE', 'EXTERNAL_PAYMENT_MUTATION', 'IRREVERSIBLE_EXTERNAL_ACTION');
-    const rollbackAttempt = store.rollbackToCheckpoint(checkpoint.id, 'Illegal external rollback attempt');
+    const rollbackAttempt = store.rollbackToCheckpoint(checkpoint.id, 'Illegal external rollback attempt', 'TENANT_IRREVERSIBLE');
     if (rollbackAttempt.success) {
       throw new Error('Rollback succeeded on IRREVERSIBLE_EXTERNAL_ACTION checkpoint!');
     }
