@@ -82,25 +82,20 @@ export class DurableStore {
 
     // Persist the audit event in SQLite before acknowledging the append.
     // The hash chain is not digitally signed; do not mark it sealed.
-    SqliteStore.getInstance().insertTenantRecord('audit_records', tenantId, {
-      id: record.id,
-      index_num: record.index_num,
-      timestamp: record.timestamp,
-      actor: record.actor,
-      action: record.action,
-      target_entity: record.target_entity,
-      target_id: record.target_id,
-      payload: record.payload,
-      payload_hash: record.payload_hash,
-      previous_hash: record.previous_hash,
-      record_hash: record.record_hash
-    });
+    const sqlite = SqliteStore.getInstance();
+    sqlite.insertTenantRecord('audit_records', tenantId, record);
     this.state.audit_chain.push(record);
 
     // This chain is hash-linked but not digitally signed. Do not mark it sealed
     // or write a fabricated signature into the SQLite audit table.
-    this.persist();
-    return record;
+    try {
+      this.persist();
+      return record;
+    } catch (error) {
+      this.state.audit_chain.pop();
+      sqlite.deleteTenantRecord('audit_records', tenantId, record.id);
+      throw error;
+    }
   }
 
   public verifyChain(): { valid: boolean; total_records: number; reason?: string } {
@@ -171,8 +166,14 @@ export class DurableStore {
       timestamp: Date.now()
     };
     this.state.checkpoints[id] = checkpoint;
-    this.persist();
-    return checkpoint;
+    try {
+      this.persist();
+      return checkpoint;
+    } catch (error) {
+      delete this.state.checkpoints[id];
+      SqliteStore.getInstance().deleteRecordById('checkpoints', id);
+      throw error;
+    }
   }
 
   public rollbackToCheckpoint(checkpointId: string, reason: string): { success: boolean; error?: string } {
