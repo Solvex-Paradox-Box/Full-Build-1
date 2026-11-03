@@ -7,6 +7,8 @@ export interface Z3ProofResult {
   claim: string;
   smt_lib_script: string;
   solver_result: 'unsat' | 'sat' | 'unknown' | 'error';
+  expected_solver_result: 'unsat' | 'sat';
+  error_message?: string;
   proved: boolean;
   explanation: string;
   counterexample_model?: Record<string, string>;
@@ -180,6 +182,7 @@ export const THEOREM_CATALOG: TheoremCatalogItem[] = [
 
 export class Z3FormalProofEngine {
   private static instance: Z3FormalProofEngine | null = null;
+  private readonly authenticReceipts = new WeakSet<object>();
 
   private constructor() {}
 
@@ -188,6 +191,15 @@ export class Z3FormalProofEngine {
       Z3FormalProofEngine.instance = new Z3FormalProofEngine();
     }
     return Z3FormalProofEngine.instance;
+  }
+
+  public isAuthenticResult(result: Z3ProofResult): boolean {
+    return this.authenticReceipts.has(result) &&
+      result.proved === true &&
+      result.solver_result === result.expected_solver_result &&
+      result.solver_result !== 'error' &&
+      result.solver_result !== 'unknown' &&
+      /^[a-f0-9]{64}$/.test(result.certificate_sha256);
   }
 
   public getCatalog(): TheoremCatalogItem[] {
@@ -294,13 +306,15 @@ export class Z3FormalProofEngine {
       timestamp
     };
 
-    return {
+    const receipt: Z3ProofResult = {
       theorem_id: theoremId,
       theorem_name: theoremName,
       domain,
       claim,
-      smt_lib_script: smtScript.trim(),
+      smt_lib_script: smtScript,
       solver_result: solverResult,
+      expected_solver_result: expectedResult,
+      error_message: errorMessage,
       proved,
       explanation,
       counterexample_model: counterexample,
@@ -310,6 +324,8 @@ export class Z3FormalProofEngine {
       certificate_sha256: computeSha256(JSON.stringify(certPayload)),
       timestamp
     };
+    this.authenticReceipts.add(receipt);
+    return receipt;
   }
 
   public async verifyCustomSmtScript(
