@@ -26,9 +26,17 @@ export class ProofEngine {
   }
 
   public registerBundle(bundle: ProofBundleEntity): void {
-    this.bundles.set(bundle.proof_id, bundle);
+    const assessment = this.verifyBundleIntegrity(bundle);
+    const storedBundle: ProofBundleEntity = {
+      ...bundle,
+      verification_status: bundle.verification_status === 'FAIL' || bundle.verification_status === 'REJECTED'
+        ? bundle.verification_status
+        : assessment.verified ? 'VERIFIED' : 'PARTIAL',
+      limitations: [...new Set([...(bundle.limitations || []), ...assessment.reasons])]
+    };
+    this.bundles.set(storedBundle.proof_id, storedBundle);
     const store = DurableStore.getInstance();
-    store.getState().proof_bundles[bundle.proof_id] = bundle;
+    store.getState().proof_bundles[storedBundle.proof_id] = storedBundle;
     store.persist();
   }
 
