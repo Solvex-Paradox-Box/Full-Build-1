@@ -75,17 +75,29 @@ export class DaisySubsystemExecutors {
       // 2. DN-02: MMTAI Authority Gate
       case 'DN-02': {
         const mmtai = MMTAIProtocol.getInstance();
-        const token = mmtai.issueAuthorizationToken('ROLE_VERIFIER', 'CAP_SANDBOX_EXECUTE', 'TENANT_TEST');
-        const auth = mmtai.authorizeExecution('CAP_SANDBOX_EXECUTE', 'ROLE_VERIFIER', token, 'CUJ_RUN', 'TENANT_TEST');
+        let mintBlocked = false;
+        try {
+          mmtai.issueAuthorizationToken('ROLE_VERIFIER', 'CAP_SANDBOX_EXECUTE', 'TENANT_TEST');
+        } catch (error) {
+          mintBlocked = error instanceof Error && error.message.startsWith('BLOCKED:');
+        }
+        const auth = mmtai.authorizeExecution(
+          'CAP_SANDBOX_EXECUTE',
+          'ROLE_VERIFIER',
+          computeSha256('UNAPPROVED_DN02_TOKEN'),
+          'CUJ_RUN',
+          'TENANT_TEST'
+        );
+        const protectedAsRequired = mintBlocked && !auth.permitted;
         return {
           node_id: 'DN-02',
-          name: 'MMTAI Authority Gate',
+          name: 'MMTAI Human-Root Authority Gate',
           category: 'SECURITY',
           executed: true,
           claim_scope: 'LOCAL',
-          status: auth.permitted ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: protectedAsRequired ? 'FAIL_CLOSED' : 'FAIL',
           duration_ms: performance.now() - start,
-          evidence: { token_prefix: token.slice(0, 16), permitted: auth.permitted }
+          evidence: { token_mint_blocked_without_human_root: mintBlocked, unissued_token_rejected: !auth.permitted, authorization_reason: auth.error }
         };
       }
 
