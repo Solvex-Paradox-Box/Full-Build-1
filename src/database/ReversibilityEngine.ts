@@ -1,5 +1,6 @@
 import { DurableStore } from './DurableStore';
 import { SqliteStore } from './SqliteStore';
+import { computeSha256 } from './DatabaseSchema';
 
 export interface DiversionResult {
   fail_closed_enforced: boolean;
@@ -53,9 +54,7 @@ export class ReversibilityEngine {
 
     if (checkpointId) {
       const rollback = this.executeRollback(checkpointId, `Automatic fail-closed diversion: ${triggerReason}`);
-      if (!rollback.success) {
-        rollbackStatus = 'FAILED';
-      }
+      rollbackStatus = rollback.success ? 'ROLLED_BACK' : 'FAILED';
     }
 
     let evidencePersisted = false;
