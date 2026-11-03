@@ -61,29 +61,26 @@ export async function runEnterpriseVerification() {
   }
 
   // 1. Authentication & RBAC Test
-  runTest('Authentication & RBAC Evaluation', 'SECURITY', () => {
+  runTest('MMTAI Token Minting Requires Human-Root Approval', 'SECURITY', () => {
     const mmtai = MMTAIProtocol.getInstance();
-    const token = mmtai.issueAuthorizationToken('ROLE_VERIFIER', 'CAP_SANDBOX_EXECUTE', 'TENANT_TEST');
-    if (!token || token.length !== 64) {
-      throw new Error('Failed to generate valid SHA-256 single-use token for verifier');
-    }
-    // Attempt privilege escalation
+    let blocked = false;
     try {
-      mmtai.issueAuthorizationToken('ROLE_VERIFIER', 'CAP_PERSISTENCE_MUTATE', 'TENANT_TEST');
-      throw new Error('Privilege escalation succeeded unexpectedly!');
-    } catch (e: any) {
-      if (!e.message.includes('Authority Violation')) throw e;
+      mmtai.issueAuthorizationToken('ROLE_VERIFIER', 'CAP_SANDBOX_EXECUTE', 'TENANT_TEST');
+    } catch (error) {
+      blocked = error instanceof Error && error.message.startsWith('BLOCKED:');
     }
+    if (!blocked) throw new Error('MMTAI minted an authorization token without a verified human-root grant');
   });
 
-  // 2. MMTAI Single-Use Token Consumption (Replay Prevention)
-  runTest('MMTAI Single-Use Token Replay Prevention', 'SECURITY', () => {
+  // 2. Unknown or fabricated authority tokens must never authorize execution.
+  runTest('MMTAI Rejects Unissued Tokens and Preserves Fail-Closed Boundary', 'SECURITY', () => {
     const mmtai = MMTAIProtocol.getInstance();
-    const token = mmtai.issueAuthorizationToken('ROLE_VERIFIER', 'CAP_SANDBOX_EXECUTE', 'TENANT_REPLAY');
-    const firstAttempt = mmtai.authorizeExecution('CAP_SANDBOX_EXECUTE', 'ROLE_VERIFIER', token, 'EXECUTE_UNIT_TEST', 'TENANT_REPLAY');
-    if (!firstAttempt.permitted) throw new Error(`Initial valid token was rejected: ${firstAttempt.error}`);
-    const replayAttempt = mmtai.authorizeExecution('CAP_SANDBOX_EXECUTE', 'ROLE_VERIFIER', token, 'EXECUTE_REPLAY_TEST', 'TENANT_REPLAY');
-    if (replayAttempt.permitted) throw new Error('Replayed token was accepted! Replay protection breached.');
+    const fabricated = computeSha256('UNAPPROVED_TEST_TOKEN');
+    const first = mmtai.authorizeExecution('CAP_SANDBOX_EXECUTE', 'ROLE_VERIFIER', fabricated, 'ATTEMPT_1', 'TENANT_REPLAY');
+    const replay = mmtai.authorizeExecution('CAP_SANDBOX_EXECUTE', 'ROLE_VERIFIER', fabricated, 'ATTEMPT_2', 'TENANT_REPLAY');
+    if (first.permitted || replay.permitted) {
+      throw new Error('An unissued token authorized an operation');
+    }
   });
 
   // 3. Multi-Tenant Cryptographic Isolation
