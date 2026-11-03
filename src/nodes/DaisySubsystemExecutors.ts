@@ -419,19 +419,25 @@ export class DaisySubsystemExecutors {
       // 17. DN-17: Single-Use Token Replay Sentinel
       case 'DN-17': {
         const mmtai = MMTAIProtocol.getInstance();
-        const tok = mmtai.issueAuthorizationToken('ROLE_VERIFIER', 'CAP_SANDBOX_EXECUTE', 'TENANT_REPLAY_TEST');
-        const first = mmtai.authorizeExecution('CAP_SANDBOX_EXECUTE', 'ROLE_VERIFIER', tok, 'USE_1', 'TENANT_REPLAY_TEST');
-        const replay = mmtai.authorizeExecution('CAP_SANDBOX_EXECUTE', 'ROLE_VERIFIER', tok, 'USE_2', 'TENANT_REPLAY_TEST');
-        const protected_replay = first.permitted && !replay.permitted;
+        let mintBlocked = false;
+        try {
+          mmtai.issueAuthorizationToken('ROLE_VERIFIER', 'CAP_SANDBOX_EXECUTE', 'TENANT_REPLAY_TEST');
+        } catch (error) {
+          mintBlocked = error instanceof Error && error.message.startsWith('BLOCKED:');
+        }
+        const fabricated = computeSha256('UNAPPROVED_DN17_TOKEN');
+        const first = mmtai.authorizeExecution('CAP_SANDBOX_EXECUTE', 'ROLE_VERIFIER', fabricated, 'USE_1', 'TENANT_REPLAY_TEST');
+        const replay = mmtai.authorizeExecution('CAP_SANDBOX_EXECUTE', 'ROLE_VERIFIER', fabricated, 'USE_2', 'TENANT_REPLAY_TEST');
+        const protected_replay = mintBlocked && !first.permitted && !replay.permitted;
         return {
           node_id: 'DN-17',
-          name: 'Single-Use Token Replay Sentinel',
+          name: 'Single-Use Token Authority Boundary',
           category: 'SECURITY',
           executed: true,
           claim_scope: 'LOCAL',
-          status: protected_replay ? 'SUCCESS' : 'FAIL_CLOSED',
+          status: protected_replay ? 'FAIL_CLOSED' : 'FAIL',
           duration_ms: performance.now() - start,
-          evidence: { replay_rejected: !replay.permitted }
+          evidence: { token_mint_blocked_without_human_root: mintBlocked, unissued_token_rejected: !first.permitted, repeated_unissued_token_rejected: !replay.permitted, replay_protection_claimed: false }
         };
       }
 
