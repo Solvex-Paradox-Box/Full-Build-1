@@ -42,6 +42,7 @@ export class ProofEngine {
     if (bundle.independent_oracles.some(o => !o.verified)) reasons.push('One or more oracle attestations rejected');
     if (!bundle.replay_results || bundle.replay_results.length === 0) reasons.push('Missing deterministic replay runs');
     if (bundle.replay_results.some(r => r.status !== 'MATCH')) reasons.push('Replay trace divergence observed');
+    reasons.push('No independently verifiable oracle signature, key identity, or trust chain is represented by the current proof-bundle schema.');
 
     return {
       verified: reasons.length === 0,
