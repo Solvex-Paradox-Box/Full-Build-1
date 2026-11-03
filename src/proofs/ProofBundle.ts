@@ -44,12 +44,15 @@ export class ProofBundleBuilder {
   }
 
   public addFormalProof(system: 'Z3_SMT' | 'LEAN4' | 'ISABELLE' | 'NOPOT' | 'TYPE_THEORY', spec: string, checked: boolean): this {
+    // A caller-supplied boolean is a claim, not a machine-checkable proof
+    // receipt. Only addZ3Proof accepts a result produced by the Z3 engine.
     this.bundle.formal_proofs.push({
       system,
       specification: spec,
-      checked,
-      proof_term_hash: computeSha256(`${system}:${spec}:${checked}`)
+      checked: false,
+      proof_term_hash: computeSha256(`UNVERIFIED_CALLER_CLAIM:${system}:${spec}:${checked}`)
     });
+    this.bundle.limitations.push(`Formal proof ${system} was declared by caller metadata; no independently verifiable proof receipt was supplied.`);
     return this;
   }
 
@@ -64,7 +67,8 @@ export class ProofBundleBuilder {
   }
 
   public addLean4Proof(filePath: string): this {
-    return this.addFormalProof('LEAN4', filePath, true);
+    this.bundle.limitations.push(`Lean4 proof at [${filePath}] was referenced but not executed or independently verified by this builder.`);
+    return this;
   }
 
   public addOracle(oracleId: string, name: string, method: string, verified: boolean): this {
@@ -105,16 +109,35 @@ export class ProofBundleBuilder {
   }
 
   public seal(): ProofBundleEntity {
-    const allTestsPassed = this.bundle.tests.length > 0 && this.bundle.tests.every(t => t.passed);
-    const formalChecked = this.bundle.formal_proofs.length > 0 && this.bundle.formal_proofs.every(f => f.checked);
-    const oraclesAttested = this.bundle.independent_oracles.length > 0 && this.bundle.independent_oracles.every(o => o.verified);
-    const replaysMatched = this.bundle.replay_results.length > 0 && this.bundle.replay_results.every(r => r.status === 'MATCH');
-
-    if (allTestsPassed && formalChecked && oraclesAttested && replaysMatched) {
-      this.bundle.verification_status = 'VERIFIED';
-    } else {
+    const hasFailingTest = this.bundle.tests.some(test => !test.passed);
+    const hasUncheckedFormalClaim = this.bundle.formal_proofs.some(proof => !proof.checked);
+    const hasReplayMismatch = this.bundle.replay_results.some(replay => replay.status !== 'MATCH');
+    if (hasFailingTest || hasUncheckedFormalClaim || hasReplayMismatch) {
       this.bundle.verification_status = 'FAIL';
+      return this.bundle;
     }
+
+    const completeLocalEvidence =
+      this.bundle.tests.length > 0 &&
+      this.bundle.formal_proofs.some(proof => proof.system === 'Z3_SMT' && proof.checked) &&
+      this.bundle.replay_results.length > 0 &&
+      this.bundle.replay_results.every(replay => replay.status === 'MATCH');
+    const hasOracleMetadata = this.bundle.independent_oracles.length > 0 &&
+      this.bundle.independent_oracles.every(oracle => oracle.verified);
+
+    // Oracle records currently contain only caller-controlled booleans and
+    // hashes of public metadata. They have no signature, key identity, or
+    // trust-chain verification. Therefore this schema cannot seal VERIFIED.
+    this.bundle.verification_status = 'PARTIAL';
+    if (!completeLocalEvidence) {
+      this.bundle.limitations.push('Required local evidence is incomplete: tests, an executed Z3 receipt, and deterministic replay are all required.');
+    }
+    this.bundle.limitations.push(
+      hasOracleMetadata
+        ? 'Oracle records are self-asserted metadata; no independently verifiable signature or trust chain is represented.'
+        : 'Independent oracle attestation is absent or not verified.'
+    );
+    this.bundle.limitations.push('VERIFIED sealing is disabled until the proof schema supports cryptographically verifiable independent attestations.');
     return this.bundle;
   }
 }
