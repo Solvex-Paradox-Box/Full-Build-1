@@ -145,6 +145,7 @@ export class ProofBundleBuilder {
         : 'Independent oracle attestation is absent or not verified.'
     );
     this.bundle.limitations.push('VERIFIED sealing is disabled until the proof schema supports cryptographically verifiable independent attestations.');
+    this.bundle.limitations.push('Environment and dependency hash fields are static markers; no measured runtime or dependency-manifest fingerprint is captured.');
     return this.bundle;
   }
 }
