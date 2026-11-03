@@ -243,8 +243,11 @@ export async function runEnterpriseVerification() {
       .addOracle('ORACLE-01', 'Test Witness', 'SIG_CHECK', true)
       .addReplay('REPLAY-01', 'hash_a', 'hash_a');
     const sealed = builder.seal();
-    if (sealed.verification_status !== 'VERIFIED') {
-      throw new Error('Clean proof bundle failed to seal as VERIFIED');
+    if (sealed.verification_status !== 'PARTIAL') {
+      throw new Error(`Self-asserted proof/oracle metadata must remain PARTIAL, received ${sealed.verification_status}`);
+    }
+    if (sealed.formal_proofs.some(proof => proof.checked)) {
+      throw new Error('Caller-supplied formal-proof boolean was accepted as a checked proof receipt');
     }
   });
 
@@ -302,6 +305,17 @@ export async function runEnterpriseVerification() {
     if (p1.final_price_cents !== 25313) {
       throw new Error(`Expected price 25313 cents, received ${p1.final_price_cents}`);
     }
+  });
+
+  // 16. Marketplace construction must not seed a fabricated sample offer.
+  runTest('Marketplace Does Not Bootstrap Unverified Sample Offers', 'MARKETPLACE', () => {
+    const market = MarketplaceEngine.getInstance();
+    const offers = DurableStore.getInstance().getState().offers;
+    const sample = Object.values(offers).find(offer =>
+      offer.title.includes('Verified Zeno Geometric Convergence Suite')
+    );
+    if (sample) throw new Error('Marketplace constructor inserted a sample offer without current verification evidence');
+    if (!market) throw new Error('Marketplace engine did not initialize');
   });
 
   // 17. Marketplace Unverified Solution Publication Blocker
