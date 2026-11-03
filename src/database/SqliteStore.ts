@@ -136,17 +136,59 @@ export class SqliteStore {
       this.tables.set(t, []);
     }
 
-    const ddl = required27.map(t => `CREATE TABLE IF NOT EXISTS ${t} (id TEXT PRIMARY KEY, tenant_id TEXT, created_at INTEGER, updated_at INTEGER, status TEXT, version TEXT);`).join('\n');
+    const ddl = required27.map(t => `CREATE TABLE IF NOT EXISTS ${t} (id TEXT PRIMARY KEY, tenant_id TEXT, created_at INTEGER, updated_at INTEGER, status TEXT, version TEXT, data_json TEXT);`).join('\n');
     this.db.exec(ddl);
+    if (this.diskBacked) {
+      for (const table of required27) {
+        const columns = this.db.all(`PRAGMA table_info(${table})`);
+        if (!columns.some((column: any) => column.name === 'data_json')) {
+          this.db.exec(`ALTER TABLE ${table} ADD COLUMN data_json TEXT`);
+        }
+      }
+    }
+  }
+
+  private hydrateRow(row: any): any {
+    if (!row) return undefined;
+    const { data_json, ...columns } = row;
+    let payload: Record<string, any> = {};
+    if (typeof data_json === 'string' && data_json.length > 0) {
+      try { payload = JSON.parse(data_json); } catch {
+        throw new Error('SQLite row contains invalid data_json payload.');
+      }
+    }
+    return { ...payload, ...columns };
+  }
+
+  private assertTableName(tableName: string): string {
+    if (!this.tables.has(tableName)) {
+      throw new Error(`Unsupported SQLite table: ${tableName}`);
+    }
+    return tableName;
   }
 
   public findTenantRecords<T = any>(tableName: string, tenantId: string, limit: number = 100): T[] {
-    const rows = this.tables.get(tableName) || [];
+    const table = this.assertTableName(tableName);
+    if (this.diskBacked) {
+      return this.db.all(
+        `SELECT * FROM ${table} WHERE tenant_id = ? ORDER BY created_at DESC LIMIT ?`,
+        [tenantId, limit]
+      ).map(row => this.hydrateRow(row)) as T[];
+    }
+    const rows = this.tables.get(table) || [];
     return rows.filter(r => r.tenant_id === tenantId).slice(0, limit) as T[];
   }
 
   public findTenantRecordById<T = any>(tableName: string, tenantId: string, id: string): T | undefined {
-    const rows = this.tables.get(tableName) || [];
+    const table = this.assertTableName(tableName);
+    if (this.diskBacked) {
+      const row = this.db.get(
+        `SELECT * FROM ${table} WHERE tenant_id = ? AND id = ?`,
+        [tenantId, id]
+      );
+      return this.hydrateRow(row) as T | undefined;
+    }
+    const rows = this.tables.get(table) || [];
     return rows.find(r => r.tenant_id === tenantId && r.id === id) as T | undefined;
   }
 
@@ -155,7 +197,14 @@ export class SqliteStore {
   }
 
   public deleteTenantRecord(tableName: string, tenantId: string, id: string): number {
-    const rows = this.tables.get(tableName) || [];
+    const table = this.assertTableName(tableName);
+    if (this.diskBacked) {
+      return this.db.run(
+        `DELETE FROM ${table} WHERE tenant_id = ? AND id = ?`,
+        [tenantId, id]
+      ).changes;
+    }
+    const rows = this.tables.get(table) || [];
     const index = rows.findIndex(r => r.tenant_id === tenantId && r.id === id);
     if (index >= 0) {
       rows.splice(index, 1);
@@ -165,10 +214,10 @@ export class SqliteStore {
   }
 
   public insertRecord(tableName: string, data: Record<string, any>): void {
-    if (!this.tables.has(tableName)) {
-      this.tables.set(tableName, []);
+    const table = this.assertTableName(tableName);
+    if (!data.id || typeof data.id !== 'string') {
+      throw new Error(`SQLite record for ${table} requires a string id.`);
     }
-    const rows = this.tables.get(tableName)!;
     const now = Date.now();
     const payload: any = {
       ...data,
@@ -177,6 +226,32 @@ export class SqliteStore {
       version: data.version || '1.0.0-PROD',
       status: data.status || 'ACTIVE'
     };
+
+    if (this.diskBacked) {
+      this.db.run(
+        `INSERT INTO ${table} (id, tenant_id, created_at, updated_at, status, version, data_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           tenant_id = excluded.tenant_id,
+           created_at = excluded.created_at,
+           updated_at = excluded.updated_at,
+           status = excluded.status,
+           version = excluded.version,
+           data_json = excluded.data_json`,
+        [
+          payload.id,
+          payload.tenant_id ?? null,
+          payload.created_at,
+          payload.updated_at,
+          payload.status,
+          payload.version,
+          JSON.stringify(payload)
+        ]
+      );
+      return;
+    }
+
+    const rows = this.tables.get(table)!;
     const existingIndex = rows.findIndex(r => r.id === payload.id);
     if (existingIndex >= 0) {
       rows[existingIndex] = { ...rows[existingIndex], ...payload };
@@ -186,7 +261,28 @@ export class SqliteStore {
   }
 
   public updateTenantRecord(tableName: string, tenantId: string, id: string, updates: Record<string, any>): number {
-    const rows = this.tables.get(tableName) || [];
+    const table = this.assertTableName(tableName);
+    if (this.diskBacked) {
+      const existing = this.findTenantRecordById<Record<string, any>>(table, tenantId, id);
+      if (!existing) return 0;
+      const updated = { ...existing, ...updates, tenant_id: tenantId, updated_at: Date.now() };
+      return this.db.run(
+        `UPDATE ${table}
+         SET tenant_id = ?, created_at = ?, updated_at = ?, status = ?, version = ?, data_json = ?
+         WHERE tenant_id = ? AND id = ?`,
+        [
+          updated.tenant_id,
+          updated.created_at ?? Date.now(),
+          updated.updated_at,
+          updated.status ?? 'ACTIVE',
+          updated.version ?? '1.0.0-PROD',
+          JSON.stringify(updated),
+          tenantId,
+          id
+        ]
+      ).changes;
+    }
+    const rows = this.tables.get(table) || [];
     const index = rows.findIndex(r => r.tenant_id === tenantId && r.id === id);
     if (index >= 0) {
       rows[index] = { ...rows[index], ...updates, updated_at: Date.now() };
