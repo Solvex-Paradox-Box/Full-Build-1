@@ -184,7 +184,11 @@ export class SolutionPipeline {
       record(4, 'BLOCKED', start, { recursive_functions: [...new Set(recursiveCalls)] }, 'Direct recursion is present but the problem specification contains no termination/ranking invariant.');
       return finish('BLOCKED at stage 4: Direct recursion has no declared termination/ranking invariant.');
     }
-    record(4, 'PASSED', start, { direct_recursive_calls: recursiveCalls.length });
+    record(4, 'PASSED', start, {
+      direct_recursive_calls: recursiveCalls.length,
+      validation_level: 'AST_DIRECT_RECURSION_SCAN_AND_DECLARATION_PRESENCE_ONLY',
+      ranking_invariant_proven: false
+    });
 
     // Stage 5 — require explicit boundary conditions in the problem specification.
     start = started();
@@ -193,7 +197,11 @@ export class SolutionPipeline {
       record(5, 'BLOCKED', start, { invariant_count: invariants.length }, 'No explicit boundary/limit invariant was found; boundary behavior cannot be inferred from source text.');
       return finish('BLOCKED at stage 5: Explicit boundary/limit invariants are required.');
     }
-    record(5, 'PASSED', start, { boundary_invariant_count: boundaryInvariants.length });
+    record(5, 'PASSED', start, {
+      boundary_invariant_count: boundaryInvariants.length,
+      validation_level: 'SPECIFICATION_TEXT_PRESENCE_ONLY',
+      boundary_semantics_proven: false
+    });
 
     // Stage 6 onward require isolated execution and verifiers that are not
     // exposed as safe, injectable interfaces in this repository snapshot.
