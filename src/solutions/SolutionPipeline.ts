@@ -1,4 +1,5 @@
 import * as ts from 'typescript';
+import { computeSha256 } from '../database/DatabaseSchema';
 import { DurableStore } from '../database/DurableStore';
 
 export type PipelineStageStatus = 'PASSED' | 'FAILED' | 'BLOCKED';
@@ -201,14 +202,6 @@ export class SolutionPipeline {
   }
 
   private sha256(value: string): string {
-    // The shared database utility keeps hashing identical across runtime targets.
-    return this.computeHash(value);
-  }
-
-  private computeHash(value: string): string {
-    // Imported lazily through the stable module binding below.
-    return sha256Fallback(value);
+    return computeSha256(value);
   }
 }
-
-import { computeSha256 as sha256Fallback } from '../database/DatabaseSchema';
