@@ -6,8 +6,25 @@ export class ProofEngine {
   private bundles: Map<string, ProofBundleEntity> = new Map();
 
   private constructor() {
-    const persisted = DurableStore.getInstance().getState().proof_bundles;
-    for (const [id, bundle] of Object.entries(persisted)) this.bundles.set(id, bundle);
+    const store = DurableStore.getInstance();
+    const persisted = store.getState().proof_bundles;
+    let changed = false;
+    for (const [id, bundle] of Object.entries(persisted)) {
+      const assessment = this.verifyBundleIntegrity(bundle);
+      if (bundle.verification_status === 'VERIFIED' && !assessment.verified) {
+        const safeBundle = {
+          ...bundle,
+          verification_status: 'PARTIAL' as const,
+          limitations: [...new Set([...(bundle.limitations || []), ...assessment.reasons])]
+        };
+        store.getState().proof_bundles[id] = safeBundle;
+        this.bundles.set(id, safeBundle);
+        changed = true;
+      } else {
+        this.bundles.set(id, bundle);
+      }
+    }
+    if (changed) store.persist();
   }
 
   public static getInstance(): ProofEngine {
