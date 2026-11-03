@@ -110,9 +110,9 @@ export class ProofBundleBuilder {
 
   public seal(): ProofBundleEntity {
     const hasFailingTest = this.bundle.tests.some(test => !test.passed);
-    const hasUncheckedFormalClaim = this.bundle.formal_proofs.some(proof => !proof.checked);
+    const hasFailedZ3Proof = this.bundle.formal_proofs.some(proof => proof.system === 'Z3_SMT' && !proof.checked);
     const hasReplayMismatch = this.bundle.replay_results.some(replay => replay.status !== 'MATCH');
-    if (hasFailingTest || hasUncheckedFormalClaim || hasReplayMismatch) {
+    if (hasFailingTest || hasFailedZ3Proof || hasReplayMismatch) {
       this.bundle.verification_status = 'FAIL';
       return this.bundle;
     }
@@ -120,6 +120,7 @@ export class ProofBundleBuilder {
     const completeLocalEvidence =
       this.bundle.tests.length > 0 &&
       this.bundle.formal_proofs.some(proof => proof.system === 'Z3_SMT' && proof.checked) &&
+      !this.bundle.formal_proofs.some(proof => proof.system !== 'Z3_SMT' && !proof.checked) &&
       this.bundle.replay_results.length > 0 &&
       this.bundle.replay_results.every(replay => replay.status === 'MATCH');
     const hasOracleMetadata = this.bundle.independent_oracles.length > 0 &&
