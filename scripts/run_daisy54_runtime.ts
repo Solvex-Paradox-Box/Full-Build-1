@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-// This CI run is intentionally provider-isolated. Never inherit credentials from
-// a runner environment and never contact live payment or hosted database services.
+// This runner strips known provider credentials and uses offline-only provider
+// handlers. It is not an OS-level network sandbox.
 for (const key of [
   'NEON_DATABASE_URL', 'DATABASE_URL', 'PAYPAL_CLIENT_ID',
   'PAYPAL_CLIENT_SECRET', 'PAYPAL_ENVIRONMENT', 'COINBASE_API_KEY',
