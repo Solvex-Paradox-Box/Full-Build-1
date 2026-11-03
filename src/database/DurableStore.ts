@@ -176,10 +176,13 @@ export class DurableStore {
     }
   }
 
-  public rollbackToCheckpoint(checkpointId: string, reason: string): { success: boolean; error?: string } {
+  public rollbackToCheckpoint(checkpointId: string, reason: string, tenantId: string): { success: boolean; error?: string } {
     const chk = this.state.checkpoints[checkpointId];
     if (!chk) {
       return { success: false, error: `Checkpoint ${checkpointId} not found` };
+    }
+    if (chk.tenant_id !== tenantId) {
+      return { success: false, error: 'BLOCKED: checkpoint tenant does not match rollback tenant.' };
     }
     if (chk.classification === 'IRREVERSIBLE_EXTERNAL_ACTION') {
       return {
