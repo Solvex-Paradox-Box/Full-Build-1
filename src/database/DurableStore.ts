@@ -266,10 +266,15 @@ export class DurableStore {
 
   private persistMap<T>(table: string, records: Record<string, T>): void {
     const sqlite = SqliteStore.getInstance();
+    const existingRows = new Map(
+      sqlite.findAllRecords<Record<string, any>>(table).map(row => [String(row.id), row])
+    );
     for (const [key, value] of Object.entries(records)) {
       const row = value as any;
       const id = String(row.id || row.offer_id || key);
-      sqlite.insertRecord(table, { ...row, id });
+      const existing = existingRows.get(id);
+      const tenantId = row.tenant_id === undefined ? existing?.tenant_id : row.tenant_id;
+      sqlite.insertRecord(table, { ...row, id, tenant_id: tenantId ?? null });
     }
   }
 
