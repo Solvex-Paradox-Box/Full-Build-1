@@ -138,6 +138,7 @@ export class SqliteStore {
 
     const ddl = required27.map(t => `CREATE TABLE IF NOT EXISTS ${t} (id TEXT PRIMARY KEY, tenant_id TEXT, created_at INTEGER, updated_at INTEGER, status TEXT, version TEXT, data_json TEXT);`).join('\n');
     this.db.exec(ddl);
+    if (this.diskBacked) this.db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
     if (this.diskBacked) {
       for (const table of required27) {
         const columns = this.db.all(`PRAGMA table_info(${table})`);
