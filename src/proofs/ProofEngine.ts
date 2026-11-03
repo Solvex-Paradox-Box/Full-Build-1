@@ -79,6 +79,7 @@ export class ProofEngine {
     } else if (bundle.replay_results.some(replay => replay.status !== 'MATCH')) {
       reasons.push('Replay trace divergence observed');
     }
+    reasons.push('Persisted checked flags are not revalidated against a serialized signed Z3 receipt; in-process receipt authenticity does not survive reload.');
     reasons.push('No independently verifiable oracle signature, key identity, or trust chain is represented by the current proof-bundle schema.');
 
     return {
