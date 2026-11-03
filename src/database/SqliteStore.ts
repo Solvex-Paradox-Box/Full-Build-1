@@ -42,7 +42,11 @@ export class SqliteStore {
             get: (sql: string, params: any[] = []) => db.prepare(sql).get(...params),
             run: (sql: string, params: any[] = []) => {
               const res = db.prepare(sql).run(...params);
-              return { changes: res.changes, lastInsertRowid: Number(res.lastInsertRowid) };
+              const changes = Number(res.changes);
+              if (!Number.isSafeInteger(changes)) {
+                throw new RangeError('SQLite change count exceeds the safe integer range');
+              }
+              return { changes, lastInsertRowid: Number(res.lastInsertRowid) };
             }
           };
         }
