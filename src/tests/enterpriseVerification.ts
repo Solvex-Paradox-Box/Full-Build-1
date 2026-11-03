@@ -83,26 +83,30 @@ export async function runEnterpriseVerification() {
     }
   });
 
-  // 3. Multi-Tenant Cryptographic Isolation
-  runTest('Multi-Tenant Cryptographic Partition Isolation', 'SECURITY', () => {
-    const store = DurableStore.getInstance();
-    store.getState().tenants['T_ALPHA'] = {
-      id: 'T_ALPHA',
-      name: 'Alpha Corp',
-      tier: 'ENTERPRISE',
-      isolated_storage_key: computeSha256('KEY_ALPHA'),
-      created_at: Date.now()
-    };
-    store.getState().tenants['T_BETA'] = {
-      id: 'T_BETA',
-      name: 'Beta LLC',
-      tier: 'ENTERPRISE',
-      isolated_storage_key: computeSha256('KEY_BETA'),
-      created_at: Date.now()
-    };
-    if (store.getState().tenants['T_ALPHA'].isolated_storage_key === store.getState().tenants['T_BETA'].isolated_storage_key) {
-      throw new Error('Cross-tenant key collision detected!');
+  // 3. Tenant isolation is tested at the actual row-filtering boundary.
+  runTest('Multi-Tenant Row-Level Storage Partition Isolation', 'SECURITY', () => {
+    const sqlite = SqliteStore.getInstance();
+    const suffix = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const tenantA = `TENANT_A_${suffix}`;
+    const tenantB = `TENANT_B_${suffix}`;
+    const rowA = `ROW_A_${suffix}`;
+    const rowB = `ROW_B_${suffix}`;
+    let isolated = false;
+    try {
+      sqlite.insertTenantRecord('problems', tenantA, { id: rowA, marker: 'A' });
+      sqlite.insertTenantRecord('problems', tenantB, { id: rowB, marker: 'B' });
+      const rowsA = sqlite.findTenantRecords<any>('problems', tenantA, 100);
+      const rowsB = sqlite.findTenantRecords<any>('problems', tenantB, 100);
+      isolated = rowsA.some(row => row.id === rowA) &&
+        !rowsA.some(row => row.id === rowB || row.tenant_id === tenantB) &&
+        rowsB.some(row => row.id === rowB) &&
+        !rowsB.some(row => row.id === rowA || row.tenant_id === tenantA);
+    } finally {
+      sqlite.deleteTenantRecord('problems', tenantA, rowA);
+      sqlite.deleteTenantRecord('problems', tenantB, rowB);
     }
+    if (!isolated) throw new Error('Tenant-scoped storage queries exposed a cross-tenant row.');
+    // This test establishes row filtering only; it does not establish cryptographic key isolation.
   });
 
   // 4. SHA-256 Linear Audit Chain Continuity
