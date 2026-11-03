@@ -188,7 +188,7 @@ export async function runEnterpriseVerification() {
     store.persist();
     const checkpoint = store.createCheckpoint('TENANT_CHECKPOINT_A', 'CROSS_TENANT_SCOPE_TEST');
     try {
-      const result = store.rollbackToCheckpoint(checkpoint.id, 'Cross-tenant rollback rejection test');
+      const result = store.rollbackToCheckpoint(checkpoint.id, 'Cross-tenant rollback rejection test', 'TENANT_CHECKPOINT_A');
       if (result.success || !result.error?.includes('cross-tenant rollback is not permitted')) {
         throw new Error('Global checkpoint snapshot was allowed to roll back across tenant boundaries');
       }
