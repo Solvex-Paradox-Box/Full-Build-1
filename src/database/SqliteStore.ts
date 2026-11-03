@@ -265,7 +265,7 @@ export class SqliteStore {
     if (this.diskBacked) {
       const existing = this.findTenantRecordById<Record<string, any>>(table, tenantId, id);
       if (!existing) return 0;
-      const updated = { ...existing, ...updates, tenant_id: tenantId, updated_at: Date.now() };
+      const updated: Record<string, any> = { ...existing, ...updates, tenant_id: tenantId, updated_at: Date.now() };
       return this.db.run(
         `UPDATE ${table}
          SET tenant_id = ?, created_at = ?, updated_at = ?, status = ?, version = ?, data_json = ?
