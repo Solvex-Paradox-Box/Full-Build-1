@@ -988,17 +988,50 @@ export class DaisySubsystemExecutors {
 
       // 48. DN-48: Lamport Vector Clock Sequencer
       case 'DN-48': {
-        const clock = { N1: 1, N2: 2, N3: 0 };
-        clock.N1 += 1;
+        type VectorClock = { N1: number; N2: number; N3: number };
+        const zero: VectorClock = { N1: 0, N2: 0, N3: 0 };
+        const tick = (clock: VectorClock, node: keyof VectorClock): VectorClock => ({
+          ...clock,
+          [node]: clock[node] + 1
+        });
+        const receive = (receiver: VectorClock, sender: VectorClock, node: keyof VectorClock): VectorClock => {
+          const merged: VectorClock = {
+            N1: Math.max(receiver.N1, sender.N1),
+            N2: Math.max(receiver.N2, sender.N2),
+            N3: Math.max(receiver.N3, sender.N3)
+          };
+          merged[node] += 1;
+          return merged;
+        };
+        const happensBefore = (left: VectorClock, right: VectorClock): boolean => {
+          const lessOrEqual = left.N1 <= right.N1 && left.N2 <= right.N2 && left.N3 <= right.N3;
+          const strictlyLess = left.N1 < right.N1 || left.N2 < right.N2 || left.N3 < right.N3;
+          return lessOrEqual && strictlyLess;
+        };
+        const eventA = tick(zero, 'N1');
+        const eventB = receive(zero, eventA, 'N2');
+        const independentEvent = tick(zero, 'N3');
+        const causalOrderVerified = happensBefore(eventA, eventB);
+        const concurrencyVerified = !happensBefore(eventB, independentEvent) &&
+          !happensBefore(independentEvent, eventB);
+        const verified = causalOrderVerified && concurrencyVerified;
         return {
           node_id: 'DN-48',
           name: 'Lamport Vector Clock Sequencer',
           category: 'CORE_KERNEL',
           executed: true,
-          claim_scope: 'LOCAL',
-          status: 'FAIL_CLOSED',
+          claim_scope: 'MODEL',
+          status: verified ? 'SUCCESS' : 'FAIL',
           duration_ms: performance.now() - start,
-          evidence: { local_clock_incremented: clock.N1 === 2, distributed_causal_order_verified: false }
+          evidence: {
+            event_a_clock: eventA,
+            event_b_received_clock: eventB,
+            independent_event_clock: independentEvent,
+            causal_order_verified: causalOrderVerified,
+            concurrency_verified: concurrencyVerified,
+            network_messages_used: false,
+            proof_scope: 'THREE_NODE_LOCAL_VECTOR_CLOCK_MODEL_ONLY'
+          }
         };
       }
 
@@ -1018,16 +1051,26 @@ export class DaisySubsystemExecutors {
 
       // 50. DN-50: Telemetry & Metric Aggregator
       case 'DN-50': {
-        const mem = typeof process !== 'undefined' ? process.memoryUsage?.() : { heapUsed: 0 };
+        const mem = typeof process !== 'undefined' && typeof process.memoryUsage === 'function'
+          ? process.memoryUsage()
+          : null;
+        const measured = Boolean(mem && Number.isFinite(mem.heapUsed) && mem.heapUsed >= 0);
         return {
           node_id: 'DN-50',
           name: 'Telemetry & Metric Aggregator',
           category: 'AUDIT',
           executed: true,
           claim_scope: 'LOCAL',
-          status: 'SUCCESS',
+          status: measured ? 'SUCCESS' : 'FAIL_CLOSED',
           duration_ms: performance.now() - start,
-          evidence: { heap_used_bytes: mem?.heapUsed || 0 }
+          evidence: {
+            measurement_source: 'node:process.memoryUsage',
+            measurement_available: measured,
+            heap_used_bytes: measured ? mem!.heapUsed : null,
+            rss_bytes: measured ? mem!.rss : null,
+            external_bytes: measured ? mem!.external : null,
+            sample_timestamp: Date.now()
+          }
         };
       }
 
