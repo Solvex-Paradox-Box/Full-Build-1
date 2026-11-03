@@ -14,20 +14,11 @@ export class MMTAIProtocol {
     return MMTAIProtocol.instance;
   }
 
-  public issueAuthorizationToken(role: string, capability: string, tenantId: string): string {
-    // CAPABILITY != AUTHORITY invariant enforcement
-    if (role === 'ROLE_VERIFIER' && capability === 'CAP_PERSISTENCE_MUTATE') {
-      throw new Error(`Authority Violation: Role ${role} is barred from executing ${capability}. Invariant [CAPABILITY != AUTHORITY] enforced.`);
-    }
-    const nonce = `${Date.now()}_${Math.random()}_${role}_${capability}_${tenantId}`;
-    const token = computeSha256(nonce);
-    this.activeTokens.set(token, {
-      role,
-      capability,
-      tenantId,
-      created: Date.now()
-    });
-    return token;
+  public issueAuthorizationToken(_role: string, _capability: string, _tenantId: string): string {
+    // Capability names and caller-supplied role strings are not authority.
+    // No human-root approval verifier or signed authority-grant adapter is
+    // configured in this build, so token minting must remain disabled.
+    throw new Error('BLOCKED: authorization-token issuance requires verified human-root approval and a signed authority grant; no verifier is configured.');
   }
 
   public authorizeExecution(
