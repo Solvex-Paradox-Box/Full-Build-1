@@ -31,18 +31,9 @@ export class ReversibilityEngine {
     targetMutation: string,
     classification: 'ATOMIC_DATABASE_RESTORE' | 'IRREVERSIBLE_EXTERNAL_ACTION' = 'ATOMIC_DATABASE_RESTORE'
   ) {
-    const chk = this.durableStore.createCheckpoint(tenantId, targetMutation, classification);
-    try {
-      this.sqlite.insertRecord('checkpoints', {
-        id: chk.id,
-        tenant_id: tenantId,
-        target_mutation: targetMutation,
-        classification,
-        snapshot_hash: computeSha256(JSON.stringify(chk.snapshot_state)),
-        status: 'ACTIVE'
-      });
-    } catch {}
-    return chk;
+    // DurableStore persists the full snapshot under this checkpoint ID.
+    // Do not overwrite that row with a metadata-only record.
+    return this.durableStore.createCheckpoint(tenantId, targetMutation, classification);
   }
 
   public executeRollback(checkpointId: string, reason: string): { success: boolean; error?: string } {
@@ -59,7 +50,7 @@ export class ReversibilityEngine {
   ): DiversionResult {
     const failureId = `fail_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const evidenceHash = computeSha256(JSON.stringify(evidencePayload || { failedGate, triggerReason, executionId }));
-    let rollbackStatus: 'ROLLED_BACK' | 'FAILED' | 'REJECTED' = 'ROLLED_BACK';
+    let rollbackStatus: 'ROLLED_BACK' | 'FAILED' | 'REJECTED' = 'REJECTED';
 
     if (checkpointId) {
       const rollback = this.executeRollback(checkpointId, `Automatic fail-closed diversion: ${triggerReason}`);
@@ -68,6 +59,8 @@ export class ReversibilityEngine {
       }
     }
 
+    let evidencePersisted = false;
+    let auditPersisted = false;
     try {
       this.sqlite.insertRecord('failures', {
         id: failureId,
@@ -76,22 +69,27 @@ export class ReversibilityEngine {
         trigger_reason: triggerReason,
         evidence_hash: evidenceHash,
         reverted_to_checkpoint: checkpointId || null,
-        fail_closed_enforced: 1,
-        status: 'QUARANTINED'
+        fail_closed_enforced: rollbackStatus === 'ROLLED_BACK',
+        status: rollbackStatus === 'ROLLED_BACK' ? 'QUARANTINED' : 'BLOCKED'
       });
-    } catch {}
+      evidencePersisted = Boolean(this.sqlite.findTenantRecordById('failures', tenantId, failureId));
+      if (!evidencePersisted) throw new Error('Failure evidence read-back failed.');
 
-    this.durableStore.appendAudit(
-      tenantId,
-      'FAIL_CLOSED_SENTINEL',
-      'FAILURE_DIVERSION',
-      'FAILURE',
-      failureId,
-      { failedGate, triggerReason, rollbackStatus, evidenceHash }
-    );
+      this.durableStore.appendAudit(
+        tenantId,
+        'FAIL_CLOSED_SENTINEL',
+        'FAILURE_DIVERSION',
+        'FAILURE',
+        failureId,
+        { failedGate, triggerReason, rollbackStatus, evidenceHash }
+      );
+      auditPersisted = true;
+    } catch {
+      evidencePersisted = false;
+    }
 
     return {
-      fail_closed_enforced: true,
+      fail_closed_enforced: rollbackStatus === 'ROLLED_BACK' && evidencePersisted && auditPersisted,
       rollback_status: rollbackStatus,
       failure_id: failureId,
       evidence_hash: evidenceHash
