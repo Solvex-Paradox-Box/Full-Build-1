@@ -279,6 +279,38 @@ export async function runEnterpriseVerification() {
     if (!result.rejection_reason?.includes('persisted problem record')) throw new Error('Pipeline did not expose the actual missing-input blocker');
   });
 
+  // 15. AST recursion inspection includes arrow-function self-calls.
+  runTest('Pipeline Detects Arrow-Function Recursion Without a Ranking Invariant', 'PIPELINE', async () => {
+    const id = `prob_recursive_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const store = DurableStore.getInstance();
+    store.getState().problems[id] = {
+      id,
+      tenant_id: 'TENANT_PIPELINE_TEST',
+      raw_problem: 'Recursion guard test',
+      normalized_title: 'Recursion guard test',
+      domain: 'TEST',
+      detected_constraints: [],
+      invariants: ['boundary at zero'],
+      status: 'INTAKE',
+      created_at: Date.now()
+    };
+    store.persist();
+    try {
+      const result = await SolutionPipeline.getInstance().runPipeline(id, 'const recurse = () => recurse();');
+      const last = result.stage_traces[result.stage_traces.length - 1];
+      if (last?.stage !== 4 || last.status !== 'BLOCKED') {
+        throw new Error(`Expected arrow-function recursion to block at stage 4, got ${last?.stage ?? 'none'} / ${last?.status ?? 'none'}`);
+      }
+      if (!String(last.reason).includes('termination/ranking invariant')) {
+        throw new Error('Recursion blocker did not identify the missing ranking invariant');
+      }
+    } finally {
+      delete store.getState().problems[id];
+      SqliteStore.getInstance().deleteRecordById('problems', id);
+      store.persist();
+    }
+  });
+
   // 15. Pipeline Fail-Closed Boundary Rejection
   runTest('Pipeline Rejects Invalid TypeScript Before Any Later Stage', 'PIPELINE', async () => {
     const pipeline = SolutionPipeline.getInstance();
