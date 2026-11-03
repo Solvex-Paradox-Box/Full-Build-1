@@ -59,14 +59,26 @@ export class ProofEngine {
 
   public verifyBundleIntegrity(bundle: ProofBundleEntity): { verified: boolean; reasons: string[] } {
     const reasons: string[] = [];
-    if (!bundle.tests || bundle.tests.length === 0) reasons.push('Zero empirical tests provided');
-    if (bundle.tests.some(t => !t.passed)) reasons.push('One or more empirical tests failed');
-    if (!bundle.formal_proofs || bundle.formal_proofs.length === 0) reasons.push('Zero machine-checked formal proofs');
-    if (bundle.formal_proofs.some(f => !f.checked)) reasons.push('One or more formal proof terms failed verification');
-    if (!bundle.independent_oracles || bundle.independent_oracles.length === 0) reasons.push('Missing independent oracle attestation');
-    if (bundle.independent_oracles.some(o => !o.verified)) reasons.push('One or more oracle attestations rejected');
-    if (!bundle.replay_results || bundle.replay_results.length === 0) reasons.push('Missing deterministic replay runs');
-    if (bundle.replay_results.some(r => r.status !== 'MATCH')) reasons.push('Replay trace divergence observed');
+    if (!Array.isArray(bundle.tests) || bundle.tests.length === 0) {
+      reasons.push('Zero empirical tests provided');
+    } else if (bundle.tests.some(test => !test.passed)) {
+      reasons.push('One or more empirical tests failed');
+    }
+    if (!Array.isArray(bundle.formal_proofs) || bundle.formal_proofs.length === 0) {
+      reasons.push('Zero machine-checked formal proofs');
+    } else if (bundle.formal_proofs.some(proof => !proof.checked)) {
+      reasons.push('One or more formal proof terms failed verification');
+    }
+    if (!Array.isArray(bundle.independent_oracles) || bundle.independent_oracles.length === 0) {
+      reasons.push('Missing independent oracle attestation');
+    } else if (bundle.independent_oracles.some(oracle => !oracle.verified)) {
+      reasons.push('One or more oracle attestations rejected');
+    }
+    if (!Array.isArray(bundle.replay_results) || bundle.replay_results.length === 0) {
+      reasons.push('Missing deterministic replay runs');
+    } else if (bundle.replay_results.some(replay => replay.status !== 'MATCH')) {
+      reasons.push('Replay trace divergence observed');
+    }
     reasons.push('No independently verifiable oracle signature, key identity, or trust chain is represented by the current proof-bundle schema.');
 
     return {
