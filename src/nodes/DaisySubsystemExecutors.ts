@@ -999,6 +999,9 @@ export class DaisySubsystemExecutors {
     output_asserted: number;
     evidence_generated: number;
     success: number;
+    prohibited_blocked: number;
+    provider_required: number;
+    fail_closed: number;
     results: SubsystemExecutionResult[];
   }> {
     const nodeReg = NodeRegistry.getInstance();
@@ -1053,7 +1056,10 @@ export class DaisySubsystemExecutors {
       executed: results.filter(r => r.executed).length,
       output_asserted: results.filter(r => r.output_asserted).length,
       evidence_generated: results.filter(r => r.evidence_generated).length,
-      success: results.filter(r => r.status === 'SUCCESS' || r.status === 'PROHIBITED_BLOCKED').length,
+      success: results.filter(r => r.status === 'SUCCESS').length,
+      prohibited_blocked: results.filter(r => r.status === 'PROHIBITED_BLOCKED').length,
+      provider_required: results.filter(r => r.status === 'PROVIDER_REQUIRED').length,
+      fail_closed: results.filter(r => r.status === 'FAIL_CLOSED').length,
       results
     };
   }
