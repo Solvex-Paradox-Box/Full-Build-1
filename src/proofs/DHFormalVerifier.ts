@@ -186,11 +186,11 @@ export class DHFormalVerifier {
     try {
       if (platformContext?.execSync) {
         const sha = platformContext.execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
-        if (sha && sha.length >= 7) return sha;
+        if (/^[a-f0-9]{40}$/i.test(sha)) return sha;
       }
     } catch {}
-    // Safe deterministic fallback if executed outside git shell or in browser
-    return 'd86e3000e980a4ba6363e99bb918a782de215d20';
+    // No fabricated provenance: callers must block commit-bound verification.
+    return 'UNKNOWN';
   }
 
   /**
