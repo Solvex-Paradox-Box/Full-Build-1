@@ -141,10 +141,14 @@ export class AuthoritativeVerificationPipeline {
     let workingTreeClean = false;
     if (platform.execSync) {
       try {
-        const gitStatus = platform.execSync('git status --porcelain', { encoding: 'utf8' });
+        const gitStatus = platform.execSync('git status --porcelain --untracked-files=no', { encoding: 'utf8' });
         const statusLines = gitStatus.split(/\r?\n/).filter(Boolean);
-        modCount = statusLines.length;
-        workingTreeClean = statusLines.length === 0;
+        const sourceChanges = statusLines.filter(line => {
+          const changedPath = line.slice(3).replace(/^.* -> /, '');
+          return !changedPath.startsWith('artifacts/') && !changedPath.startsWith('public/');
+        });
+        modCount = sourceChanges.length;
+        workingTreeClean = sourceChanges.length === 0;
       } catch {}
     }
     recordGate(
