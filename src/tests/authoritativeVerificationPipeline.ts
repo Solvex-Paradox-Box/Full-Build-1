@@ -94,12 +94,17 @@ export class AuthoritativeVerificationPipeline {
       }
     };
 
-    let commitSha = '728625581c2f89210c752d03fda0a154812b2366';
+    let commitSha = 'UNKNOWN';
+    let commitShaResolved = false;
     if (platform.execSync) {
       try {
-        commitSha = platform.execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+        const resolved = platform.execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+        if (/^[a-f0-9]{40}$/i.test(resolved)) {
+          commitSha = resolved;
+          commitShaResolved = true;
+        }
       } catch {
-        commitSha = '728625581c2f89210c752d03fda0a154812b2366';
+        commitSha = 'UNKNOWN';
       }
     }
 
@@ -136,10 +141,14 @@ export class AuthoritativeVerificationPipeline {
     let workingTreeClean = false;
     if (platform.execSync) {
       try {
-        const gitStatus = platform.execSync('git status --porcelain', { encoding: 'utf8' });
+        const gitStatus = platform.execSync('git status --porcelain --untracked-files=no', { encoding: 'utf8' });
         const statusLines = gitStatus.split(/\r?\n/).filter(Boolean);
-        modCount = statusLines.length;
-        workingTreeClean = statusLines.length === 0;
+        const sourceChanges = statusLines.filter(line => {
+          const changedPath = line.slice(3).replace(/^.* -> /, '');
+          return !changedPath.startsWith('artifacts/') && !changedPath.startsWith('public/');
+        });
+        modCount = sourceChanges.length;
+        workingTreeClean = sourceChanges.length === 0;
       } catch {}
     }
     recordGate(
@@ -147,11 +156,12 @@ export class AuthoritativeVerificationPipeline {
       'GATE-00',
       'Repository Integrity & Baseline Provenance',
       'LOCAL',
-      workingTreeClean ? 'PASSED' : 'BLOCKED',
+      workingTreeClean && commitShaResolved ? 'PASSED' : 'BLOCKED',
       performance.now() - g0Start,
       {
         execution_id: executionId,
         commit_sha: commitSha,
+        commit_sha_resolved: commitShaResolved,
         modified_files_count: modCount,
         working_tree_clean: workingTreeClean,
         runtime_mode: platform.execSync ? 'NODE_RUNTIME' : 'BROWSER_RUNTIME'
@@ -183,18 +193,30 @@ export class AuthoritativeVerificationPipeline {
     );
 
     const g2Start = performance.now();
+    const invalidConfigs = fullPreflight.configurations.filter(r => r.status === 'INVALID_FORMAT');
+    const missingProductionConfigs = fullPreflight.environment_mode === 'production'
+      ? fullPreflight.configurations.filter(r => r.status === 'ABSENT')
+      : [];
+    const configPass = invalidConfigs.length === 0 && missingProductionConfigs.length === 0;
+    const configGateStatus: GateResult['status'] = invalidConfigs.length > 0
+      ? 'FAILED'
+      : missingProductionConfigs.length > 0 ? 'BLOCKED' : 'PASSED';
     recordGate(
       2,
       'GATE-02',
       'Secret & Configuration Preflight',
       'LOCAL',
-      'PASSED',
+      configGateStatus,
       performance.now() - g2Start,
       {
         environment: fullPreflight.environment_mode,
+        passed: configPass,
         present_vars: fullPreflight.configurations.filter(r => r.status === 'PRESENT').map(r => r.key),
-        absent_vars: fullPreflight.configurations.filter(r => r.status === 'ABSENT').map(r => r.key)
-      }
+        absent_vars: fullPreflight.configurations.filter(r => r.status === 'ABSENT').map(r => r.key),
+        invalid_vars: invalidConfigs.map(r => r.key),
+        not_required_vars: fullPreflight.configurations.filter(r => r.status === 'NOT_REQUIRED_FOR_SELECTED_ENVIRONMENT').map(r => r.key)
+      },
+      configPass ? undefined : [...invalidConfigs.map(r => `Invalid configuration format: ${r.key}`), ...missingProductionConfigs.map(r => `Production configuration missing: ${r.key}`)].join('; ')
     );
 
     // ==========================================

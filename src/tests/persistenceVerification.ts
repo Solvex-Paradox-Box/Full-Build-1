@@ -202,12 +202,17 @@ export async function runPersistenceVerification(): Promise<PersistenceVerificat
   try {
     // Re-instantiate sqlite database reader from disk file
     if (diskBacked) {
-      // @ts-ignore
-      const nodeSqlite = typeof require === 'function' ? require('node:sqlite') : null;
-      if (nodeSqlite && nodeSqlite.DatabaseSync) {
+      const nodeProcess = process as NodeJS.Process & { getBuiltinModule?: (id: string) => any };
+      const nodeSqlite = nodeProcess.getBuiltinModule?.('node:sqlite') ??
+        (typeof require === 'function' ? require('node:sqlite') : null);
+      if (nodeSqlite?.DatabaseSync) {
         const freshDb = new nodeSqlite.DatabaseSync(dbPath);
-        const rows = freshDb.prepare('SELECT id, status FROM solutions WHERE id = ?').all(testSolutionId);
-        restartReadbackOk = rows.some((row: any) => row.id === testSolutionId);
+        try {
+          const rows = freshDb.prepare('SELECT id, status FROM solutions WHERE id = ?').all(testSolutionId);
+          restartReadbackOk = rows.some((row: any) => row.id === testSolutionId);
+        } finally {
+          freshDb.close();
+        }
       } else {
         restartReadbackOk = false;
       }

@@ -41,3 +41,12 @@ jobs:
         run: bun run verify:120
       - name: Proof closure
         run: bun run verify:proof-closure
+      - name: Authoritative 46-gate verification
+        run: bunx tsx scripts/verify_46_gates.ts
+      - name: Upload 46-gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: system-46-gates
+          path: artifacts/system-46-gates.json
+          if-no-files-found: ignore
