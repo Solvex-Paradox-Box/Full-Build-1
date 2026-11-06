@@ -19,6 +19,11 @@ async function main() {
     source_commit_sha: sourceCommitSha,
     isolated_process: true
   };
+  const persistenceGate = artifact.gates.find(g => g.gate_id === 'GATE-10');
+  const masterGate = artifact.gates.find(g => g.gate_id === 'GATE-46');
+  console.log('[GATE-10-DIAGNOSTICS]', JSON.stringify(persistenceGate?.details ?? { missing: true }));
+  console.log('[GATE-46-DIAGNOSTICS]', JSON.stringify(masterGate?.details ?? { missing: true }));
+
   const output = path.join(artifactsDir, 'system-46-gates.json');
   fs.writeFileSync(output, JSON.stringify(artifact, null, 2), 'utf8');
 
