@@ -4,12 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "AUTH_MODE=local_oidc_test NODE_ENV=development tsx server.ts",
     "build": "vite build",
     "start": "tsx server.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "test:auth": "tsx --test src/auth/AuthService.test.ts",
+    "test:oidc-local": "node scripts/test-local-oidc-flow.mjs",
     "test:formal-hash": "tsx scripts/test_formal_evidence_hash.ts",
     "test:local-inference": "tsx scripts/test_local_inference_runtime.ts",
     "preflight": "tsx scripts/preflight.ts",
@@ -26,6 +28,7 @@
     "verify:ci": "tsx scripts/ci_proof_closure_check.ts",
     "verify:all": "tsx scripts/verify_authoritative.ts",
     "verify:production-runtime": "tsx scripts/verify_production_runtime.ts",
+    "verify:first-party-auth": "node scripts/verify_first_party_auth.mjs",
     "verify:release-safety": "node scripts/verify_release_safety.mjs",
     "verify:payments-disabled": "node scripts/verify_payments_disabled.mjs",
     "verify:daisy-safety": "node scripts/verify_daisy_foundational_safety.mjs"
@@ -39,20 +42,22 @@
     "express": "^4.21.2",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "openid-client": "^6.8.9",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "vite": "^8.3.0",
     "z3-solver": "^5.2.0"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "oidc-provider": "^9.13.3",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2",
-    "@types/express": "^4.17.21"
+    "typescript": "^7.0.2"
   }
 }

@@ -1,10 +1,6 @@
-export interface SessionContext {
-  user_id: string;
-  tenant_id: string;
-  email: string;
-  role: 'OWNER' | 'ADMIN' | 'VERIFIER' | 'CUSTOMER';
-  issued_at: number;
-}
+import { AuthService, type UserContext } from './AuthService';
+
+export interface SessionContext extends UserContext {}
 
 export interface SessionDecision {
   authenticated: boolean;
@@ -16,40 +12,22 @@ export interface SessionDecision {
 
 export class SessionGuard {
   public static requireVerifiedSession(session: SessionContext | null | undefined, action: string, targetTenantId?: string): SessionDecision {
-    if (!session) {
+    if (!session || !AuthService.getInstance().isActiveLocalOidcTestContext(session)) {
       return {
         authenticated: false,
         authorized: false,
         status: 'BLOCKED',
-        reason: `BLOCKED: no verified session for action "${action}". First-party identity and tenant verification are not yet implemented.`
+        reason: `BLOCKED: no live, verified OIDC session for action "${action}".`,
       };
     }
 
-    if (!session.user_id || !session.tenant_id || !session.email) {
-      return {
-        authenticated: false,
-        authorized: false,
-        status: 'BLOCKED',
-        reason: 'BLOCKED: session is partial or malformed; no production authentication boundary is configured.'
-      };
-    }
-
-    if (targetTenantId && session.tenant_id !== targetTenantId) {
-      return {
-        authenticated: true,
-        authorized: false,
-        status: 'BLOCKED',
-        reason: 'BLOCKED: tenant mismatch; first-party authorization checks are not enabled for cross-tenant access.',
-        session
-      };
-    }
-
+    const decision = AuthService.getInstance().authorize(session, action, targetTenantId);
     return {
-      authenticated: false,
-      authorized: false,
-      status: 'BLOCKED',
-      reason: 'BLOCKED: verified first-party session enforcement is not available in this source tree yet.',
-      session
+      authenticated: true,
+      authorized: decision.authorized,
+      status: decision.authorized ? 'AUTHENTICATED' : 'BLOCKED',
+      reason: decision.reason,
+      session,
     };
   }
 
@@ -58,7 +36,7 @@ export class SessionGuard {
       authenticated: false,
       authorized: false,
       status: 'BLOCKED',
-      reason: 'BLOCKED: no verified first-party session manager is configured for read/write access. Public health/status reads remain the only authorized operation.'
+      reason: 'BLOCKED: read access requires a live verified session; public health/status reads remain separate.',
     };
   }
 }

@@ -48,6 +48,14 @@ jobs:
       - name: Verify fail-closed release safety
         run: npm run verify:release-safety
 
+      - name: Verify first-party auth remains fail-closed
+        run: npm run verify:first-party-auth
+
+      - name: Test AuthService and local OIDC flow
+        run: |
+          npm run test:auth
+          npm run test:oidc-local
+
       - name: Verify payments remain disabled
         run: npm run verify:payments-disabled
 
