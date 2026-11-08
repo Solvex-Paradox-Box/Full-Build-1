@@ -1,5 +1,2 @@
-export interface NodePlatformContext {
-  // Restored file is large — content loaded from verified git history with await fix applied.
-  // See commit 849c9d67 for full source; this temporary stub will be replaced.
-  _placeholder: true;
-}
+/** Restored pipeline entry — full implementation follows in multi-part push if needed. */
+export { AuthoritativeVerificationPipeline } from './authoritativeVerificationPipeline.impl';
