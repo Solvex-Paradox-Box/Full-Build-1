@@ -67,12 +67,19 @@ export class NeonSessionStore implements SessionStore {
   static fromEnvironment(): NeonSessionStore | null {
     const url = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
     if (!url) return null;
-    const { Pool } = require('@neondatabase/serverless') as {
-      Pool: new (opts: { connectionString: string }) => PoolLike;
-    };
-    return new NeonSessionStore(new Pool({ connectionString: url }), {
-      appRole: process.env.SOVEREIGN_APP_ROLE || 'solvex_app_runtime',
-    });
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const nodeModule = require('node:module') as { createRequire: (f: string) => NodeRequire };
+      const req = nodeModule.createRequire(typeof __filename !== 'undefined' ? __filename : process.cwd() + '/');
+      const { Pool } = req('@neondatabase/serverless') as {
+        Pool: new (opts: { connectionString: string }) => PoolLike;
+      };
+      return new NeonSessionStore(new Pool({ connectionString: url }), {
+        appRole: process.env.SOVEREIGN_APP_ROLE || 'solvex_app_runtime',
+      });
+    } catch {
+      return null;
+    }
   }
 
   private async withClient<T>(fn: (client: PoolClientLike) => Promise<T>): Promise<T> {
