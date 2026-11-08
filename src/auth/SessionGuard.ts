@@ -11,11 +11,11 @@ export interface SessionDecision {
 }
 
 export class SessionGuard {
-  public static requireVerifiedSession(
+  public static async requireVerifiedSession(
     session: SessionContext | null | undefined,
     action: string,
     targetTenantId?: string,
-  ): SessionDecision {
+  ): Promise<SessionDecision> {
     if (!session) {
       return {
         authenticated: false,
@@ -25,7 +25,6 @@ export class SessionGuard {
       };
     }
 
-    // Fail-closed on partial claims
     if (!session.user_id || !session.tenant_id || !session.email || !session.role) {
       return {
         authenticated: false,
@@ -35,8 +34,7 @@ export class SessionGuard {
       };
     }
 
-    const auth = AuthService.getInstance();
-    const decision = auth.requireVerifiedSession(session, action, targetTenantId);
+    const decision = await AuthService.getInstance().requireVerifiedSession(session, action, targetTenantId);
 
     return {
       authenticated: decision.authenticated,
@@ -47,7 +45,7 @@ export class SessionGuard {
     };
   }
 
-  public static isReadOnlyAllowed(session: SessionContext | null | undefined): SessionDecision {
+  public static async isReadOnlyAllowed(session: SessionContext | null | undefined): Promise<SessionDecision> {
     if (!session) {
       return {
         authenticated: false,
