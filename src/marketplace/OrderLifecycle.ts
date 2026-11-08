@@ -1,6 +1,6 @@
 import { SqliteStore } from '../database/SqliteStore';
 import { DurableStore } from '../database/DurableStore';
-import { AuthService, UserContext } from '../auth/AuthService';
+import { AuthService } from '../auth/AuthService';
 
 export class OrderLifecycleManager {
   private static instance: OrderLifecycleManager | null = null;
@@ -30,22 +30,24 @@ export class OrderLifecycleManager {
     return OrderLifecycleManager.instance;
   }
 
-  public transitionOrder(
+  public async transitionOrder(
     orderId: string,
     targetState: string,
-    user?: UserContext,
+    sessionToken?: string | null,
     evidencePayload?: any
-  ): { success: boolean; order?: any; error?: string } {
+  ): Promise<{ success: boolean; order?: any; error?: string }> {
     const rawDb = this.sqlite.getRawDb();
     const order = rawDb.get('SELECT * FROM orders WHERE id = ?', [orderId]);
     if (!order) {
       return { success: false, error: `Order [${orderId}] not found in SQLite store` };
     }
 
-    const authorization = AuthService.getInstance().authorize(user, 'ORDER_TRANSITION', order.tenant_id);
-    if (!authorization.authorized) {
+    // Token-backed auth only; UserContext alone is never accepted
+    const authorization = await AuthService.getInstance().authorize(sessionToken, 'ORDER_TRANSITION', order.tenant_id);
+    if (!authorization.authorized || !authorization.user) {
       return { success: false, error: authorization.reason || 'BLOCKED: verified authorization required.' };
     }
+    const actorEmail = authorization.user.email;
 
     const currentStatus = order.status;
     const allowed = this.validTransitions[currentStatus] || [];
@@ -64,7 +66,7 @@ export class OrderLifecycleManager {
     const updated = { ...order, status: targetState };
     this.durableStore.appendAudit(
       order.tenant_id,
-      user?.email || 'SYSTEM_LIFECYCLE',
+      actorEmail,
       'ORDER_TRANSITION',
       'ORDER',
       orderId,

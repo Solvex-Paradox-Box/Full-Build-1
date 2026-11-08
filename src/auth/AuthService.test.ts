@@ -20,36 +20,36 @@ function setMode(mode: string, nodeEnv: string): void {
   process.env.NODE_ENV = nodeEnv;
 }
 
-test('local OIDC sessions are accepted only after registration and remain tenant/action scoped', () => {
+test('local OIDC sessions are accepted only after registration and remain tenant/action scoped', async () => {
   try {
     setMode('oidc', 'production');
     assert.throws(() => auth.registerLocalOidcTestSession(token, syntheticUser), /BLOCKED/);
-    assert.equal(auth.verifyToken(token).valid, false);
-    assert.equal(auth.authorize(syntheticUser, 'ORDER_TRANSITION', 'TENANT_DEV_A').authorized, false);
+    assert.equal((await auth.verifyToken(token)).valid, false);
+    assert.equal((await auth.authorize(token, 'ORDER_TRANSITION', 'TENANT_DEV_A')).authorized, false);
 
     setMode('local_oidc_test', 'development');
     auth.registerLocalOidcTestSession(token, syntheticUser);
-    const verified = auth.verifyToken(token);
+    const verified = await auth.verifyToken(token);
     assert.equal(verified.valid, true);
     assert.equal(verified.user?.user_id, 'test-customer');
 
-    assert.equal(auth.authorize(verified.user, 'ORDER_TRANSITION', 'TENANT_DEV_A').authorized, true);
-    assert.equal(auth.authorize(verified.user, 'ORDER_TRANSITION', 'TENANT_DEV_B').authorized, false);
-    assert.equal(auth.authorize(verified.user, 'VIEW_EVIDENCE', 'TENANT_DEV_A').authorized, false);
-    assert.equal(auth.authorize({ ...syntheticUser }, 'ORDER_TRANSITION', 'TENANT_DEV_A').authorized, false);
+    assert.equal((await auth.authorize(token, 'ORDER_TRANSITION', 'TENANT_DEV_A')).authorized, true);
+    assert.equal((await auth.authorize(token, 'ORDER_TRANSITION', 'TENANT_DEV_B')).authorized, false);
+    assert.equal((await auth.authorize(token, 'VIEW_EVIDENCE', 'TENANT_DEV_A')).authorized, false);
+    assert.equal((await auth.authorize(null, 'ORDER_TRANSITION', 'TENANT_DEV_A')).authorized, false);
 
-    const guard = SessionGuard.requireVerifiedSession(verified.user, 'ORDER_TRANSITION', 'TENANT_DEV_A');
+    const guard = await SessionGuard.requireVerifiedSession(token, 'ORDER_TRANSITION', 'TENANT_DEV_A');
     assert.equal(guard.authenticated, true);
     assert.equal(guard.authorized, true);
     assert.equal(guard.status, 'AUTHENTICATED');
 
     auth.revokeLocalOidcTestSession(token);
-    assert.equal(auth.verifyToken(token).valid, false);
-    assert.equal(SessionGuard.requireVerifiedSession(verified.user, 'ORDER_TRANSITION', 'TENANT_DEV_A').authenticated, false);
+    assert.equal((await auth.verifyToken(token)).valid, false);
+    assert.equal((await SessionGuard.requireVerifiedSession(token, 'ORDER_TRANSITION', 'TENANT_DEV_A')).authenticated, false);
 
     setMode('oidc', 'production');
-    assert.equal(auth.verifyToken(token).valid, false);
-    assert.equal(auth.authorize(verified.user, 'ORDER_TRANSITION', 'TENANT_DEV_A').authorized, false);
+    assert.equal((await auth.verifyToken(token)).valid, false);
+    assert.equal((await auth.authorize(token, 'ORDER_TRANSITION', 'TENANT_DEV_A')).authorized, false);
     assert.throws(() => auth.createSignedToken('u', 't', 'e@example.invalid', 'CUSTOMER'), /BLOCKED/);
   } finally {
     if (priorMode === undefined) delete process.env.AUTH_MODE;
