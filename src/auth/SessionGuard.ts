@@ -10,50 +10,47 @@ export interface SessionDecision {
   session?: SessionContext;
 }
 
+/**
+ * SessionGuard — every production decision is backed by a verified Neon session token.
+ * A caller-supplied UserContext alone is never accepted.
+ */
 export class SessionGuard {
+  /**
+   * @param sessionToken Opaque session token from the Secure HttpOnly cookie.
+   *                     Required in production; looked up against Neon on every call.
+   */
   public static async requireVerifiedSession(
-    session: SessionContext | null | undefined,
+    sessionToken: string | null | undefined,
     action: string,
     targetTenantId?: string,
   ): Promise<SessionDecision> {
-    if (!session) {
+    if (!sessionToken || typeof sessionToken !== 'string' || sessionToken.length < 32) {
       return {
         authenticated: false,
         authorized: false,
         status: 'BLOCKED',
-        reason: `BLOCKED: no verified session for action "${action}".`,
+        reason: `BLOCKED: no verified session token for action "${action}".`,
       };
     }
 
-    if (!session.user_id || !session.tenant_id || !session.email || !session.role) {
-      return {
-        authenticated: false,
-        authorized: false,
-        status: 'BLOCKED',
-        reason: 'BLOCKED: session is partial or malformed (subject, email, tenant or role missing).',
-      };
-    }
-
-    const decision = await AuthService.getInstance().requireVerifiedSession(session, action, targetTenantId);
+    const decision = await AuthService.getInstance().requireVerifiedSession(
+      sessionToken,
+      action,
+      targetTenantId,
+    );
 
     return {
       authenticated: decision.authenticated,
       authorized: decision.authorized,
       status: decision.status,
       reason: decision.reason,
-      session: decision.authenticated ? session : undefined,
+      session: decision.user,
     };
   }
 
-  public static async isReadOnlyAllowed(session: SessionContext | null | undefined): Promise<SessionDecision> {
-    if (!session) {
-      return {
-        authenticated: false,
-        authorized: false,
-        status: 'BLOCKED',
-        reason: 'BLOCKED: read access requires a live verified session; public health/status reads remain separate.',
-      };
-    }
-    return SessionGuard.requireVerifiedSession(session, 'VIEW_EVIDENCE');
+  public static async isReadOnlyAllowed(
+    sessionToken: string | null | undefined,
+  ): Promise<SessionDecision> {
+    return SessionGuard.requireVerifiedSession(sessionToken, 'VIEW_EVIDENCE');
   }
 }
