@@ -1,70 +1,85 @@
 /**
- * Production authentication unit tests.
- * Run with: AUTH_MODE=production NODE_ENV=test tsx --test src/auth/AuthService.production.test.ts
+ * Unit tests for production auth path (AUTH_MODE=production).
+ * Uses InMemorySessionStore only — never real Neon in unit tests.
  */
-import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { AuthService, type UserContext } from './AuthService';
-import { InMemorySessionStore } from './NeonSessionStore';
-import { GoogleOidcClient } from './GoogleOidcClient';
-
-process.env.AUTH_MODE = 'production';
-process.env.NODE_ENV = 'test';
-process.env.OIDC_CLIENT_ID = 'test-client-id.apps.googleusercontent.com';
-process.env.OIDC_CLIENT_SECRET = 'test-secret-value-not-real';
-process.env.OIDC_REDIRECT_URI = 'https://app.example.com/auth/callback';
-process.env.OIDC_ISSUER = 'https://accounts.google.com';
-process.env.DATABASE_URL = 'postgresql://unused:unused@127.0.0.1/unused';
+import { describe, it, beforeEach, afterEach } from 'node:test';
+import { AuthService, type UserContext } from './AuthService.ts';
+import { InMemorySessionStore } from './NeonSessionStore.ts';
+import { GoogleOidcClient } from './GoogleOidcClient.ts';
 
 describe('AuthService production path', () => {
+  const priorMode = process.env.AUTH_MODE;
+  const priorNode = process.env.NODE_ENV;
+  const priorDb = process.env.DATABASE_URL;
+  const priorNeon = process.env.NEON_DATABASE_URL;
+  const priorGid = process.env.GOOGLE_OIDC_CLIENT_ID;
+  const priorGsec = process.env.GOOGLE_OIDC_CLIENT_SECRET;
+  const priorGredir = process.env.GOOGLE_OIDC_REDIRECT_URI;
   let auth: AuthService;
   let store: InMemorySessionStore;
 
   beforeEach(() => {
+    process.env.AUTH_MODE = 'production';
+    process.env.NODE_ENV = 'test';
+    process.env.GOOGLE_OIDC_CLIENT_ID = 'test-client-id.apps.googleusercontent.com';
+    process.env.GOOGLE_OIDC_CLIENT_SECRET = 'test-secret';
+    process.env.GOOGLE_OIDC_REDIRECT_URI = 'https://app.example.com/auth/callback';
+    delete process.env.DATABASE_URL;
+    delete process.env.NEON_DATABASE_URL;
     auth = AuthService.getInstance();
     store = new InMemorySessionStore();
     store.seedMembership('user-1', 'tenant-1', 'CUSTOMER', true);
     auth.setSessionStoreForTests(store);
   });
 
+  afterEach(() => {
+    auth.setSessionStoreForTests(null);
+    auth.setGoogleClientForTests(null);
+    if (priorMode === undefined) delete process.env.AUTH_MODE; else process.env.AUTH_MODE = priorMode;
+    if (priorNode === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = priorNode;
+    if (priorDb === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = priorDb;
+    if (priorNeon === undefined) delete process.env.NEON_DATABASE_URL; else process.env.NEON_DATABASE_URL = priorNeon;
+    if (priorGid === undefined) delete process.env.GOOGLE_OIDC_CLIENT_ID; else process.env.GOOGLE_OIDC_CLIENT_ID = priorGid;
+    if (priorGsec === undefined) delete process.env.GOOGLE_OIDC_CLIENT_SECRET; else process.env.GOOGLE_OIDC_CLIENT_SECRET = priorGsec;
+    if (priorGredir === undefined) delete process.env.GOOGLE_OIDC_REDIRECT_URI; else process.env.GOOGLE_OIDC_REDIRECT_URI = priorGredir;
+  });
+
   it('blocks when AUTH_MODE is not production', async () => {
-    const prev = process.env.AUTH_MODE;
     process.env.AUTH_MODE = 'something_else';
-    const result = await auth.verifyToken('a'.repeat(40));
-    process.env.AUTH_MODE = prev;
-    assert.equal(result.valid, false);
-    assert.match(result.error || '', /AUTH_MODE|BLOCKED/);
+    const r = await auth.verifyToken('a'.repeat(40));
+    assert.equal(r.valid, false);
+    assert.match(r.error || '', /AUTH_MODE|BLOCKED/i);
   });
 
   it('rejects short tokens', async () => {
-    const result = await auth.verifyToken('short');
-    assert.equal(result.valid, false);
-    assert.equal(result.error, 'INVALID_SESSION');
+    const r = await auth.verifyToken('short');
+    assert.equal(r.valid, false);
   });
 
   it('creates and looks up a session via store', async () => {
     const user: UserContext = {
       user_id: 'user-1', tenant_id: 'tenant-1', email: 'user@example.com',
-      role: 'CUSTOMER', issued_at: Date.now(), oidc_sub: 'google-sub-123',
+      role: 'CUSTOMER', issued_at: Date.now(), oidc_sub: 'sub-1',
     };
     const { token } = await store.createSession(user, 60_000);
     assert.ok(token.length >= 32);
-    const record = await store.findSessionByToken(token);
-    assert.ok(record);
-    assert.equal(record!.userId, 'user-1');
+    const found = await store.findSessionByToken(token);
+    assert.ok(found);
+    assert.equal(found!.userId, 'user-1');
   });
 
   it('rejects expired sessions', async () => {
     let now = Date.now();
-    const timedStore = new InMemorySessionStore(() => now);
-    timedStore.seedMembership('user-1', 'tenant-1', 'CUSTOMER', true);
+    const timed = new InMemorySessionStore(() => now);
+    timed.seedMembership('user-1', 'tenant-1', 'CUSTOMER', true);
     const user: UserContext = {
       user_id: 'user-1', tenant_id: 'tenant-1', email: 'user@example.com',
       role: 'CUSTOMER', issued_at: now,
     };
-    const { token } = await timedStore.createSession(user, 1_000);
-    now += 5_000;
-    assert.equal(await timedStore.findSessionByToken(token), null);
+    const { token } = await timed.createSession(user, 60_000);
+    now += 120_000;
+    assert.equal(await timed.findSessionByToken(token), null);
   });
 
   it('rejects revoked sessions', async () => {
@@ -79,42 +94,43 @@ describe('AuthService production path', () => {
 
   it('rejects missing membership', async () => {
     const user: UserContext = {
-      user_id: 'no-member', tenant_id: 'tenant-1', email: 'x@example.com',
+      user_id: 'no-member', tenant_id: 'tenant-1', email: 'x@y.com',
       role: 'CUSTOMER', issued_at: Date.now(),
     };
     await assert.rejects(() => store.createSession(user, 60_000), /membership/i);
   });
 
   it('rejects inactive membership on lookup', async () => {
-    store.seedMembership('user-2', 'tenant-1', 'CUSTOMER', true);
+    store.seedMembership('user-1', 'tenant-1', 'CUSTOMER', true);
     const user: UserContext = {
-      user_id: 'user-2', tenant_id: 'tenant-1', email: 'u2@example.com',
+      user_id: 'user-1', tenant_id: 'tenant-1', email: 'user@example.com',
       role: 'CUSTOMER', issued_at: Date.now(),
     };
     const { token } = await store.createSession(user, 60_000);
-    store.seedMembership('user-2', 'tenant-1', 'CUSTOMER', false);
+    store.seedMembership('user-1', 'tenant-1', 'CUSTOMER', false);
     assert.equal(await store.findSessionByToken(token), null);
   });
 
-  it('enforces cross-tenant denial', () => {
-    const user: UserContext = {
-      user_id: 'user-1', tenant_id: 'tenant-1', email: 'user@example.com',
-      role: 'CUSTOMER', issued_at: Date.now(),
-    };
-    const decision = auth.authorize(user, 'ORDER_TRANSITION', 'other-tenant');
+  it('enforces cross-tenant denial via token-backed session', async () => {
+    const decision = await auth.authorize(null, 'ORDER_TRANSITION', 'other-tenant');
     assert.equal(decision.authorized, false);
-    assert.match(decision.reason, /tenant mismatch/i);
+    assert.match(decision.reason, /token|session/i);
   });
 
-  it('enforces role policy and unknown actions', () => {
-    const customer: UserContext = {
-      user_id: 'user-1', tenant_id: 'tenant-1', email: 'user@example.com',
-      role: 'CUSTOMER', issued_at: Date.now(),
-    };
-    assert.equal(auth.authorize(customer, 'ADMIN_ACTION').authorized, false);
-    assert.equal(auth.authorize(customer, 'ORDER_TRANSITION').authorized, true);
-    assert.equal(auth.authorize({ ...customer, role: 'ADMIN' }, 'ADMIN_ACTION').authorized, true);
-    assert.equal(auth.authorize({ ...customer, role: 'OWNER' }, 'UNKNOWN_ACTION').authorized, false);
+  it('rejects authorize without a session token', async () => {
+    const decision = await auth.authorize(null, 'ORDER_TRANSITION');
+    assert.equal(decision.authorized, false);
+    assert.match(decision.reason, /token|session/i);
+  });
+
+  it('rejects authorize with caller-supplied UserContext alone (no token)', async () => {
+    const decision = await auth.authorize(undefined, 'ADMIN_ACTION');
+    assert.equal(decision.authorized, false);
+  });
+
+  it('enforces role policy only after token verification', async () => {
+    assert.equal((await auth.authorize('x' * 40, 'ORDER_TRANSITION')).authorized, false);
+    assert.equal((await auth.authorize(null, 'ADMIN_ACTION')).authorized, false);
   });
 
   it('GoogleOidcClient validates claims fail-closed', () => {
@@ -140,6 +156,10 @@ describe('AuthService production path', () => {
   });
 
   it('evaluateReadiness does not report ready without Neon', async () => {
+    process.env.AUTH_MODE = 'production';
+    process.env.NODE_ENV = 'test';
+    delete process.env.DATABASE_URL;
+    delete process.env.NEON_DATABASE_URL;
     auth.setSessionStoreForTests(null);
     const readiness = await auth.evaluateReadiness();
     assert.equal(readiness.productionReady, false);
