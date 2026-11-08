@@ -1,16 +1,9 @@
 /**
  * Canonical Full-Build authentication boundary.
  *
- * Modes (explicit, fail-closed):
- *   AUTH_MODE=local_oidc_test  – synthetic local OIDC for automated tests only
- *                                (NODE_ENV must not be production)
- *   AUTH_MODE=production       – real Google OIDC + Neon session store
- *                                Requires successful readiness validation
- *   anything else / missing    – BLOCKED
- *
- * Production is NEVER considered ready merely because environment variables exist.
- * Ready requires: explicit AUTH_MODE=production, valid Google OIDC config,
- * Neon connectivity, and session-store probe success.
+ * SECURITY: In production, every authorization decision MUST be backed by a
+ * verified, active Neon session looked up by opaque token. A caller-supplied
+ * UserContext alone NEVER establishes authentication.
  */
 import {
   GoogleOidcClient,
@@ -19,7 +12,6 @@ import {
 } from './GoogleOidcClient';
 import {
   NeonSessionStore,
-  InMemorySessionStore,
   type SessionStore,
 } from './NeonSessionStore';
 
@@ -70,6 +62,10 @@ export interface AuthReadiness {
   googleOidcConfigured: boolean;
   neonConnected: boolean;
   sessionStoreReady: boolean;
+  migrationPresent: boolean;
+  membershipAccessOk: boolean;
+  leastPrivilegeOk: boolean;
+  sessionPersistenceOk: boolean;
 }
 
 export class AuthService {
@@ -116,6 +112,10 @@ export class AuthService {
         googleOidcConfigured: false,
         neonConnected: false,
         sessionStoreReady: false,
+        migrationPresent: false,
+        membershipAccessOk: false,
+        leastPrivilegeOk: false,
+        sessionPersistenceOk: false,
       };
     }
 
@@ -127,6 +127,10 @@ export class AuthService {
         googleOidcConfigured: false,
         neonConnected: false,
         sessionStoreReady: false,
+        migrationPresent: false,
+        membershipAccessOk: false,
+        leastPrivilegeOk: false,
+        sessionPersistenceOk: false,
       };
     }
 
@@ -138,6 +142,11 @@ export class AuthService {
 
     let neonConnected = false;
     let sessionStoreReady = false;
+    let migrationPresent = false;
+    let membershipAccessOk = false;
+    let leastPrivilegeOk = false;
+    let sessionPersistenceOk = false;
+
     if (!this.sessionStore) {
       this.sessionStore = NeonSessionStore.fromEnvironment();
     }
@@ -147,8 +156,15 @@ export class AuthService {
       const probe = await this.sessionStore.probeConnectivity();
       neonConnected = probe.ok;
       sessionStoreReady = probe.ok;
+      migrationPresent = probe.migrationPresent === true;
+      membershipAccessOk = probe.membershipAccessOk === true;
+      leastPrivilegeOk = probe.leastPrivilegeOk === true;
+      sessionPersistenceOk = probe.sessionPersistenceOk === true;
       if (!probe.ok) {
         reasons.push(`Neon session store probe failed: ${probe.reason || 'unknown'}`);
+      }
+      if (probe.details) {
+        for (const d of probe.details) reasons.push(d);
       }
     }
 
@@ -167,6 +183,10 @@ export class AuthService {
       googleOidcConfigured &&
       neonConnected &&
       sessionStoreReady &&
+      migrationPresent &&
+      membershipAccessOk &&
+      leastPrivilegeOk &&
+      sessionPersistenceOk &&
       reasons.length === 0;
 
     if (!productionReady && reasons.length === 0) {
@@ -180,6 +200,10 @@ export class AuthService {
       googleOidcConfigured,
       neonConnected,
       sessionStoreReady,
+      migrationPresent,
+      membershipAccessOk,
+      leastPrivilegeOk,
+      sessionPersistenceOk,
     };
     this.readinessCache = result;
     this.readinessCheckedAt = Date.now();
@@ -234,15 +258,9 @@ export class AuthService {
     if (!(await this.isProductionReady())) {
       throw new Error('BLOCKED: production authentication is not ready.');
     }
-    if (!this.sessionStore) {
-      throw new Error('BLOCKED: session store unavailable.');
-    }
-    if (!identity.emailVerified) {
-      throw new Error('BLOCKED: email not verified by identity provider.');
-    }
-    if (!VALID_ROLES.has(role)) {
-      throw new Error('BLOCKED: invalid role.');
-    }
+    if (!this.sessionStore) throw new Error('BLOCKED: session store unavailable.');
+    if (!identity.emailVerified) throw new Error('BLOCKED: email not verified by identity provider.');
+    if (!VALID_ROLES.has(role)) throw new Error('BLOCKED: invalid role.');
 
     const user: UserContext = Object.freeze({
       user_id: userId,
@@ -263,7 +281,7 @@ export class AuthService {
     return this.sessionStore.revokeSession(token);
   }
 
-  public createSignedToken(_userId: string, _tenantId: string, _email: string, _role: SovereignRole): string {
+  public createSignedToken(_a: string, _b: string, _c: string, _d: SovereignRole): string {
     throw new Error('BLOCKED: local token issuance is disabled; use Google OIDC + Neon session path.');
   }
 
@@ -289,12 +307,8 @@ export class AuthService {
     }
 
     const record = await this.sessionStore.findSessionByToken(token);
-    if (!record) {
-      return { valid: false, error: 'INVALID_OR_EXPIRED_SESSION' };
-    }
-    if (!VALID_ROLES.has(record.role)) {
-      return { valid: false, error: 'MALFORMED_IDENTITY' };
-    }
+    if (!record) return { valid: false, error: 'INVALID_OR_EXPIRED_SESSION' };
+    if (!VALID_ROLES.has(record.role)) return { valid: false, error: 'MALFORMED_IDENTITY' };
 
     const user: UserContext = Object.freeze({
       user_id: record.userId,
@@ -308,17 +322,26 @@ export class AuthService {
     return { valid: true, user };
   }
 
-  public authorize(
-    user: UserContext | null | undefined,
+  /**
+   * Authorize an action.
+   * PRODUCTION: sessionToken is mandatory and re-verified against Neon on every call.
+   * A caller-supplied UserContext alone NEVER establishes authentication.
+   */
+  public async authorize(
+    sessionToken: string | null | undefined,
     action: string,
     targetTenantId?: string,
-  ): { authorized: boolean; reason: string } {
-    if (!user) {
-      return { authorized: false, reason: 'BLOCKED: verified session required.' };
+  ): Promise<{ authorized: boolean; reason: string; user?: UserContext }> {
+    if (!sessionToken || typeof sessionToken !== 'string' || sessionToken.length < 32) {
+      return { authorized: false, reason: 'BLOCKED: production authorization requires a verified session token.' };
     }
-    if (isLocalOidcTestMode() && !this.isActiveLocalOidcTestContext(user)) {
-      return { authorized: false, reason: 'BLOCKED: verified session required.' };
+
+    const verified = await this.verifyToken(sessionToken);
+    if (!verified.valid || !verified.user) {
+      return { authorized: false, reason: verified.error || 'BLOCKED: verified Neon session required.' };
     }
+    const user = verified.user;
+
     if (targetTenantId && user.tenant_id !== targetTenantId) {
       return { authorized: false, reason: 'BLOCKED: tenant mismatch; cross-tenant access denied.' };
     }
@@ -329,11 +352,15 @@ export class AuthService {
     if (!roles.includes(user.role)) {
       return { authorized: false, reason: 'BLOCKED: role does not permit this action.' };
     }
-    return { authorized: true, reason: 'AUTHORIZED: verified identity and tenant membership.' };
+    return { authorized: true, reason: 'AUTHORIZED: verified Neon session and tenant membership.', user };
   }
 
+  /**
+   * Require a verified session for an action.
+   * PRODUCTION: sessionToken is mandatory; re-checked against Neon. UserContext alone is rejected.
+   */
   public async requireVerifiedSession(
-    session: UserContext | null | undefined,
+    sessionToken: string | null | undefined,
     action: string,
     targetTenantId?: string,
   ): Promise<{
@@ -341,49 +368,23 @@ export class AuthService {
     authorized: boolean;
     status: 'BLOCKED' | 'AUTHENTICATED';
     reason: string;
+    user?: UserContext;
   }> {
-    if (!session) {
+    const decision = await this.authorize(sessionToken, action, targetTenantId);
+    if (!decision.authorized || !decision.user) {
       return {
         authenticated: false,
         authorized: false,
         status: 'BLOCKED',
-        reason: 'BLOCKED: no verified session available.',
+        reason: decision.reason,
       };
     }
-
-    if (isLocalOidcTestMode()) {
-      if (!this.isActiveLocalOidcTestContext(session)) {
-        return {
-          authenticated: false,
-          authorized: false,
-          status: 'BLOCKED',
-          reason: 'BLOCKED: local OIDC test session inactive.',
-        };
-      }
-    } else if (isExplicitProductionMode()) {
-      if (!(await this.isProductionReady())) {
-        return {
-          authenticated: false,
-          authorized: false,
-          status: 'BLOCKED',
-          reason: 'BLOCKED: production authentication is not ready.',
-        };
-      }
-    } else {
-      return {
-        authenticated: false,
-        authorized: false,
-        status: 'BLOCKED',
-        reason: 'BLOCKED: AUTH_MODE does not enable authentication.',
-      };
-    }
-
-    const decision = this.authorize(session, action, targetTenantId);
     return {
       authenticated: true,
-      authorized: decision.authorized,
-      status: decision.authorized ? 'AUTHENTICATED' : 'BLOCKED',
+      authorized: true,
+      status: 'AUTHENTICATED',
       reason: decision.reason,
+      user: decision.user,
     };
   }
 
@@ -395,11 +396,7 @@ export class AuthService {
     return this.googleClient;
   }
 
-  public getAuthStatus(): {
-    mode: string;
-    localOidcTest: boolean;
-    explicitProduction: boolean;
-  } {
+  public getAuthStatus(): { mode: string; localOidcTest: boolean; explicitProduction: boolean } {
     return {
       mode: authMode() || '(unset)',
       localOidcTest: isLocalOidcTestMode(),
@@ -410,12 +407,9 @@ export class AuthService {
   private assertValidIdentity(source: UserContext): void {
     if (
       !source ||
-      typeof source.user_id !== 'string' ||
-      !source.user_id ||
-      typeof source.tenant_id !== 'string' ||
-      !source.tenant_id ||
-      typeof source.email !== 'string' ||
-      !source.email ||
+      typeof source.user_id !== 'string' || !source.user_id ||
+      typeof source.tenant_id !== 'string' || !source.tenant_id ||
+      typeof source.email !== 'string' || !source.email ||
       !VALID_ROLES.has(source.role) ||
       !Number.isSafeInteger(source.issued_at)
     ) {
