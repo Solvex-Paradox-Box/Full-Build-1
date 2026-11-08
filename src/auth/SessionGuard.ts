@@ -11,32 +11,51 @@ export interface SessionDecision {
 }
 
 export class SessionGuard {
-  public static requireVerifiedSession(session: SessionContext | null | undefined, action: string, targetTenantId?: string): SessionDecision {
-    if (!session || !AuthService.getInstance().isActiveLocalOidcTestContext(session)) {
+  public static requireVerifiedSession(
+    session: SessionContext | null | undefined,
+    action: string,
+    targetTenantId?: string,
+  ): SessionDecision {
+    if (!session) {
       return {
         authenticated: false,
         authorized: false,
         status: 'BLOCKED',
-        reason: `BLOCKED: no live, verified OIDC session for action "${action}".`,
+        reason: `BLOCKED: no verified session for action "${action}".`,
       };
     }
 
-    const decision = AuthService.getInstance().authorize(session, action, targetTenantId);
+    // Fail-closed on partial claims
+    if (!session.user_id || !session.tenant_id || !session.email || !session.role) {
+      return {
+        authenticated: false,
+        authorized: false,
+        status: 'BLOCKED',
+        reason: 'BLOCKED: session is partial or malformed (subject, email, tenant or role missing).',
+      };
+    }
+
+    const auth = AuthService.getInstance();
+    const decision = auth.requireVerifiedSession(session, action, targetTenantId);
+
     return {
-      authenticated: true,
+      authenticated: decision.authenticated,
       authorized: decision.authorized,
-      status: decision.authorized ? 'AUTHENTICATED' : 'BLOCKED',
+      status: decision.status,
       reason: decision.reason,
-      session,
+      session: decision.authenticated ? session : undefined,
     };
   }
 
-  public static isReadOnlyAllowed(_session: SessionContext | null | undefined): SessionDecision {
-    return {
-      authenticated: false,
-      authorized: false,
-      status: 'BLOCKED',
-      reason: 'BLOCKED: read access requires a live verified session; public health/status reads remain separate.',
-    };
+  public static isReadOnlyAllowed(session: SessionContext | null | undefined): SessionDecision {
+    if (!session) {
+      return {
+        authenticated: false,
+        authorized: false,
+        status: 'BLOCKED',
+        reason: 'BLOCKED: read access requires a live verified session; public health/status reads remain separate.',
+      };
+    }
+    return SessionGuard.requireVerifiedSession(session, 'VIEW_EVIDENCE');
   }
 }
