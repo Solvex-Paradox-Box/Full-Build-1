@@ -20,6 +20,7 @@ class DaisyRepository(private val dao: DaisyDao) {
 
     suspend fun insertDiscoveryLink(link: DiscoveryLink) = dao.insertDiscoveryLink(link)
     suspend fun clearAllDiscoveryLinks() = dao.clearAllDiscoveryLinks()
+    suspend fun replaceDiscoveryLinks(links: List<DiscoveryLink>) = dao.replaceDiscoveryLinks(links)
 
     suspend fun insertConsensusTask(task: ConsensusTask): Long = dao.insertConsensusTask(task)
     suspend fun clearAllConsensusTasks() = dao.clearAllConsensusTasks()

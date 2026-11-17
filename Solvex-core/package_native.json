@@ -8,7 +8,7 @@
     "build": "vite build --config vite.native.config.ts && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit -p tsconfig_native.json"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

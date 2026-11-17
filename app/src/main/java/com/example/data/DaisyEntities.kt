@@ -93,8 +93,17 @@ interface DaisyDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDiscoveryLink(link: DiscoveryLink)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDiscoveryLinks(links: List<DiscoveryLink>)
+
     @Query("DELETE FROM discovery_links")
     suspend fun clearAllDiscoveryLinks()
+
+    @Transaction
+    suspend fun replaceDiscoveryLinks(links: List<DiscoveryLink>) {
+        clearAllDiscoveryLinks()
+        if (links.isNotEmpty()) insertDiscoveryLinks(links)
+    }
 
     // Consensus tasks
     @Query("SELECT * FROM consensus_tasks ORDER BY timestamp DESC")

@@ -29,5 +29,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Build native UI and server bundle
         run: npm run build
+      - name: Type-check native UI
+        run: npm run lint
       - name: Confirm native entry artifact exists
         run: test -s dist/index_native.html && test -s dist/server.cjs

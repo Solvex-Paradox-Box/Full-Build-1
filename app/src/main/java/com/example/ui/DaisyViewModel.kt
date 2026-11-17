@@ -91,8 +91,6 @@ class DaisyViewModel(application: Application) : AndroidViewModel(application) {
         // Pre-populate system with initial sandbox tethers for robust and high-fidelity showcase
         viewModelScope.launch {
             repository.clearAllTetherNodes()
-            repository.clearAllIngressFiles()
-            repository.clearAllDiscoveryLinks()
             repository.clearAllConsensusTasks()
             repository.clearAllLogs()
 

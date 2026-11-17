@@ -42,7 +42,15 @@ async function main() {
   assert.equal(oversized.status, 'MALFORMED_INPUT');
   assert.equal(oversized.text, undefined);
 
-  console.log('PASS: local inference fails closed for missing assets, malformed roles, and oversized messages.');
+  const invalidTimeout = await runtime.generate({
+    messages: [{ role: 'user', content: 'A request with an invalid timeout' }],
+    timeoutMs: 0,
+  });
+  assert.equal(invalidTimeout.status, 'MALFORMED_INPUT');
+  assert.equal(invalidTimeout.code, 'MALFORMED_INPUT');
+  assert.equal(invalidTimeout.text, undefined);
+
+  console.log('PASS: local inference fails closed for missing assets, malformed roles, oversized messages, and invalid timeouts.');
 }
 
 main().catch((error) => {

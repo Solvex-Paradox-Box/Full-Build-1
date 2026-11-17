@@ -59,7 +59,7 @@ export interface InferenceRuntimeInfo {
 
 export interface InferenceRuntime {
   getInfo(): InferenceRuntimeInfo;
-  /** True only when a verified local model and engine are loadable. */
+  /** True only when configured model/engine paths pass preliminary filesystem checks; not proof of compatibility or successful loading. */
   isReady(): boolean;
   generate(request: InferenceRequest): Promise<InferenceResult>;
 }

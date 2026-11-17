@@ -54,6 +54,10 @@ function validateRequest(request: InferenceRequest): string | null {
   if (total > MAX_PROMPT_CHARS) {
     return 'Combined prompt size exceeds the allowed limit.';
   }
+  if (request.timeoutMs !== undefined &&
+      (!Number.isFinite(request.timeoutMs) || request.timeoutMs < 1 || request.timeoutMs > 600_000)) {
+    return 'Timeout must be between 1 and 600000 milliseconds.';
+  }
   return null;
 }
 
@@ -103,8 +107,8 @@ export class LocalInferenceRuntime implements InferenceRuntime {
       ready: this.ready,
       offlineCapable: false,
       notes: this.ready
-        ? 'Local model and engine paths are present; generative calls use the first-party engine only. Network isolation is not enforced by this runtime, so offline capability is not attested.'
-        : 'Model weights and/or inference engine are not configured. Generative inference remains BLOCKED. Network isolation is not enforced by this runtime, so offline capability is not attested. Formal verification and deterministic logic are separate subsystems.',
+        ? 'Model and engine paths passed basic filesystem checks only; format compatibility and successful model loading are not attested. Network isolation is not enforced by this runtime.'
+        : 'Model weights and/or inference engine are not configured. Generative inference remains BLOCKED. Network isolation is not enforced by this runtime. Formal verification and deterministic logic are separate subsystems.',
     };
   }
 
@@ -222,8 +226,12 @@ export class LocalInferenceRuntime implements InferenceRuntime {
       const child = spawn(engine, ['--model', model, '--prompt', prompt], {
         stdio: ['ignore', 'pipe', 'pipe'],
         env: {
-          ...process.env,
-          // Discourage accidental network use from wrapper scripts.
+          // Do not leak application credentials to a configured model wrapper. This is
+          // a reduced child environment, not OS-level network isolation.
+          PATH: process.env.PATH ?? '',
+          HOME: process.env.HOME ?? '',
+          TMPDIR: process.env.TMPDIR ?? '/tmp',
+          LANG: 'C.UTF-8',
           DAISY_INFERENCE_OFFLINE: '1',
         },
       });
@@ -236,6 +244,7 @@ export class LocalInferenceRuntime implements InferenceRuntime {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
         fn();
       };
 
@@ -259,7 +268,9 @@ export class LocalInferenceRuntime implements InferenceRuntime {
         }
       });
       child.stderr?.on('data', (chunk: Buffer) => {
-        stderr += chunk.toString('utf8');
+        if (stderr.length < 8_192) {
+          stderr += chunk.toString('utf8').slice(0, 8_192 - stderr.length);
+        }
       });
       child.on('error', (err) => {
         finish(() => reject(new Error(`LOCAL_ENGINE_ERROR: ${err.message}`)));

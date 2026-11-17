@@ -63,6 +63,7 @@ export default function ParadoxLedger() {
   const gates = data?.stage_45_readiness;
   const activation = data?.activation;
   const pipeline = data?.authoritative_pipeline;
+  const sources: Record<string, Source> = data?.sources ?? {};
 
   return <div className="border border-neutral-800 bg-neutral-950 p-6 rounded-lg space-y-6 glow-border" id="paradox_ledger_module">
     <div className="flex items-start justify-between gap-3">
@@ -87,13 +88,13 @@ export default function ParadoxLedger() {
     <section className="space-y-3">
       <div className="flex items-center gap-2 text-neutral-300"><FileCode className="h-4 w-4 text-cyan-400" /><h3 className="text-xs font-mono uppercase">Evidence source integrity</h3></div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {Object.entries(data?.sources || {}).map(([name, source]) => <div key={name} className="border border-neutral-900 bg-black/40 rounded p-3 min-w-0">
+        {Object.entries(sources).map(([name, source]) => <div key={name} className="border border-neutral-900 bg-black/40 rounded p-3 min-w-0">
           <div className="flex items-start justify-between gap-2"><p className="text-xs text-neutral-200">{labels[name] || name}</p><span className={`text-[9px] font-mono uppercase ${source.status === 'CURRENT' ? 'text-emerald-300' : 'text-amber-300'}`}>{source.status}</span></div>
           <p className="text-[10px] text-neutral-500 mt-2">{source.generated_at || 'No timestamp found'}</p>
           <p className="text-[10px] text-neutral-500 mt-1">{ageText(source.age_seconds)}</p>
           <p className="text-[10px] font-mono text-neutral-600 mt-1 break-all">Source: {shortHash(source.source_commit_sha)}</p>
         </div>)}
-        {!Object.keys(data?.sources || {}).length && !loading && <div className="border border-neutral-900 bg-black/40 rounded p-4 text-xs text-neutral-500">No artifact source metadata was returned.</div>}
+        {!Object.keys(sources).length && !loading && <div className="border border-neutral-900 bg-black/40 rounded p-4 text-xs text-neutral-500">No artifact source metadata was returned.</div>}
       </div>
     </section>
 
