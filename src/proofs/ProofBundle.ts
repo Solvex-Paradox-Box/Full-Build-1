@@ -1,4 +1,7 @@
-import { ProofBundleEntity, computeSha256 } from '../database/DatabaseSchema';
+import { createHash } from 'node:crypto';
+import { ProofBundleEntity } from '../database/DatabaseSchema';
+
+const computeSha256 = (data: string): string => createHash('sha256').update(data, 'utf8').digest('hex');
 import { Z3ProofResult } from './Z3FormalProofEngine';
 
 export class ProofBundleBuilder {
@@ -102,6 +105,11 @@ export class ProofBundleBuilder {
   public addLimitation(limitation: string): this {
     this.bundle.limitations.push(limitation);
     return this;
+  }
+
+  public buildPartial(): ProofBundleEntity {
+    this.bundle.verification_status = 'PARTIAL';
+    return this.bundle;
   }
 
   public seal(): ProofBundleEntity {

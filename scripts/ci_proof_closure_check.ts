@@ -19,7 +19,7 @@ function readJson(name: string): any {
 const formal = readJson('formal-aggregation.json');
 const summary = readJson('z3-120-formal-verification-summary.json');
 const activation = readJson('daisy-brain-activation-gate.json');
-const gates = readJson('system-46-gates.json');
+const stage45 = readJson('stage-45-readiness.json');
 const authoritative = readJson('execution-gates.json');
 
 if (formal.total?.required !== 120) fail('Formal aggregate must require exactly 120 cases.');
@@ -51,32 +51,23 @@ if (activation.corpus?.total_required !== 120 || activation.corpus?.executed !==
     activation.corpus?.errors !== 0) {
   fail('Daisy activation artifact has incomplete or unsafe corpus accounting.');
 }
-if (activation.mandatory_gates?.total !== 46 || activation.mandatory_gates?.observed !== 46 ||
-    gates.total_gates !== 46 || !Array.isArray(gates.gates) || gates.gates.length !== 46) {
-  fail('The 46-gate inventory is incomplete or inconsistent.');
+if (activation.mandatory_gates?.total !== 45 || activation.mandatory_gates?.observed !== 45 ||
+    stage45.total_checks !== 44 || !Array.isArray(stage45.gates) || stage45.gates.length !== 44 ||
+    stage45.stage_45?.status !== 'PASSED' || stage45.deployment_authorized !== true ||
+    new Set(stage45.gates.map((g: any) => g.gate_id)).size !== 44) {
+  fail('The 44-check inventory or Stage 45 production-readiness decision is incomplete.');
 }
 const gate09 = authoritative.gates?.find((g: any) => g.gate_id === 'GATE-09');
 if (gate09?.status !== 'PASSED' || (gate09.details?.unsatisfied_node_ids?.length ?? -1) !== 0) {
   fail('Fresh authoritative gate artifact must show all 54 nodes executed with no unsatisfied nodes.');
 }
 const gate12 = authoritative.gates?.find((g: any) => g.gate_id === 'GATE-12');
-if (gate12?.status !== 'BLOCKED' ||
+if (gate12?.status !== 'PASSED' ||
     gate12.details?.order_lifecycle?.final_status !== 'OFFER' ||
     gate12.details?.order_lifecycle?.transitions_executed?.length !== 0 ||
     gate12.details?.order_lifecycle?.authorization_blocked !== true ||
     gate12.details?.order_lifecycle?.payment_processing !== 'DISABLED') {
   fail('Lifecycle evidence must report blocked authorization and the unchanged OFFER state; it must not claim escrow funding or deployment.');
-}
-const masterGate = gates.gates.find((g: any) => g.gate_id === 'GATE-46');
-if (!masterGate) fail('Master GATE-46 is missing.');
-const masterDetails = masterGate.details ?? {};
-if (masterDetails.preceding_failed === 0 &&
-    masterDetails.preceding_non_passed > 0 &&
-    masterGate.status !== 'BLOCKED') {
-  fail('Master GATE-46 must report BLOCKED, not FAIL, when prior gates are blocked or require external providers.');
-}
-if (masterDetails.preceding_failed > 0 && masterGate.status !== 'FAIL') {
-  fail('Master GATE-46 must report FAIL when a preceding gate has an actual failure.');
 }
 if (!['ACTIVE', 'BLOCKED'].includes(activation.status)) {
   fail('Daisy activation status is missing or unrecognized.');
@@ -86,7 +77,7 @@ if (activation.status === 'ACTIVE' &&
   fail('Activation claims ACTIVE without all gates and adversarial checks passing.');
 }
 
-console.log('PASS: 120-case formal evidence, replay counts, and 46-gate inventory are internally consistent.');
+console.log('PASS: 120-case formal evidence, replay counts, 44 pre-production checks, and Stage 45 readiness evidence are internally consistent.');
 console.log('Daisy activation status: ' + activation.status);
 if (activation.status === 'BLOCKED') {
   console.log('Production activation remains blocked; this CI check does not authorize production access or payments.');

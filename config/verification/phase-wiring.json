@@ -1,0 +1,173 @@
+{
+  "schema_version": "1.0.0",
+  "status": "EXECUTABLE_45_STAGE_SEQUENCE",
+  "sequence": {
+    "pre_production": {
+      "stages": "1-44",
+      "required_check_count": 44
+    },
+    "production_readiness": {
+      "stage": 45,
+      "gate_id": "STAGE-45"
+    },
+    "post_production": {
+      "begins_after": 45,
+      "required_for_operational_completion": true,
+      "numbered_stage": false
+    }
+  },
+  "pre_production": {
+    "description": "Local, model, and sandbox-verifiable checks required before deployment. For provider and lifecycle gates, this phase validates local adapter contracts, authorization boundaries, fail-closed behavior, and sandbox-safe paths only; it does not claim live production connectivity. For GATE-11, GATE-12, and GATE-14, only the local contract/sandbox-safe portions are pre-production; their live production portions are listed separately below.",
+    "system_gate_ids": [
+      "GATE-00",
+      "GATE-01",
+      "GATE-02",
+      "GATE-03",
+      "GATE-04",
+      "GATE-05",
+      "GATE-06",
+      "GATE-07",
+      "GATE-08",
+      "GATE-09",
+      "GATE-10",
+      "GATE-11",
+      "GATE-12",
+      "GATE-13",
+      "GATE-14"
+    ],
+    "enterprise_invariant_ids": [
+      "INV-01",
+      "INV-02",
+      "INV-03",
+      "INV-04",
+      "INV-05",
+      "INV-06",
+      "INV-07",
+      "INV-08",
+      "INV-09",
+      "INV-10",
+      "INV-11",
+      "INV-12",
+      "INV-13",
+      "INV-14",
+      "INV-15",
+      "INV-16",
+      "INV-17",
+      "INV-18",
+      "INV-19",
+      "INV-20",
+      "INV-21",
+      "INV-22",
+      "INV-23",
+      "INV-24",
+      "INV-25",
+      "INV-26",
+      "INV-27",
+      "INV-28",
+      "INV-29"
+    ],
+    "expected_total": 44
+  },
+  "stage_45": {
+    "id": "STAGE-45",
+    "name": "Final Pre-Production Production-Readiness Verification",
+    "purpose": "Evaluate all 44 pre-production checks and authorize deployment only when every check passes with current, commit-matched evidence.",
+    "depends_on": "ALL_PRE_PRODUCTION_CHECKS",
+    "pass_conditions": [
+      "Exactly 44 unique pre-production checks are present.",
+      "All 44 checks have PASSED status at LOCAL, MODEL, or SANDBOX scope appropriate to the check.",
+      "Evidence is current, commit-matched, hash-verified, and reproducible.",
+      "Release artifact and deployment target are identified and validated.",
+      "No unresolved pre-production integrity, security, or policy blocker remains."
+    ],
+    "must_not_depend_on": [
+      "Live production provider connectivity",
+      "Post-deployment lifecycle execution",
+      "Production failure injection",
+      "Production rollback or recovery",
+      "Post-deployment monitoring or whole-product production exercise",
+      "Live independent model oracle attestation"
+    ],
+    "on_pass": "PRE_PRODUCTION_COMPLETE_AND_DEPLOYMENT_AUTHORIZED",
+    "on_fail": "DEPLOYMENT_BLOCKED"
+  },
+  "post_production": {
+    "description": "Checks that require a deployed production or approved production-like target. These checks run after Stage 45 authorizes deployment and are recorded as a separate operational evidence set; they are not a numbered stage.",
+    "checks": [
+      {
+        "id": "GATE-11-PRODUCTION",
+        "name": "Live Neon and PayPal provider connectivity/authentication",
+        "verification_scope": "PRODUCTION",
+        "source_gate_id": "GATE-11"
+      },
+      {
+        "id": "PIPE-14",
+        "name": "Multi-Model Independent Oracle Attestation",
+        "verification_scope": "PRODUCTION",
+        "source_pipeline_stage": 14
+      },
+      {
+        "id": "GATE-12-PRODUCTION",
+        "name": "Trusted-identity and signed-tenant-claim lifecycle execution",
+        "verification_scope": "PRODUCTION",
+        "source_gate_id": "GATE-12"
+      },
+      {
+        "id": "GATE-14-PRODUCTION",
+        "name": "Production truth-boundary audit and live readiness evidence",
+        "verification_scope": "PRODUCTION",
+        "source_gate_id": "GATE-14"
+      },
+      {
+        "id": "INV-30",
+        "name": "Central Failure Diversion Preserves Evidence & Executes Rollback",
+        "verification_scope": "DEPLOYED_ENVIRONMENT"
+      },
+      {
+        "id": "POST-DEPLOY-HEALTH",
+        "name": "Deployment health, readiness, telemetry, cgroup memory enforcement, and monitoring",
+        "verification_scope": "PRODUCTION"
+      },
+      {
+        "id": "POST-FAILURE-INJECTION",
+        "name": "Failure diversion, rollback, and recovery exercise",
+        "verification_scope": "PRODUCTION_OR_APPROVED_STAGING"
+      },
+      {
+        "id": "WHOLE-PRODUCT",
+        "name": "Integrated SolveX verification including Daisy 54-node graph, node handoffs, JIT generation, packaging, distribution, and recovery",
+        "verification_scope": "PRODUCTION_OR_APPROVED_STAGING"
+      }
+    ]
+  },
+  "evidence_contract": {
+    "required_fields": [
+      "gate_id",
+      "phase",
+      "status",
+      "claim_scope",
+      "execution_id",
+      "commit_sha",
+      "environment",
+      "timestamp",
+      "evidence_ref",
+      "evidence_hash",
+      "depends_on",
+      "blockers"
+    ],
+    "statuses": [
+      "PASSED",
+      "FAILED",
+      "BLOCKED",
+      "PENDING",
+      "EXTERNAL_PROVIDER_REQUIRED"
+    ],
+    "rules": [
+      "Never promote EXTERNAL_PROVIDER_REQUIRED, PENDING, or BLOCKED to PASSED.",
+      "Local, model, and sandbox evidence cannot establish production connectivity.",
+      "Stage 45 consumes only the 44 pre-production results.",
+      "No post-production result may be a prerequisite of Stage 45.",
+      "Post-production checks execute only after deployment and are not part of the 45-stage pre-production sequence."
+    ]
+  }
+}

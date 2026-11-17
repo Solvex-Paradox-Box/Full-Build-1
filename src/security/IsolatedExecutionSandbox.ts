@@ -24,7 +24,7 @@ export interface SandboxResult {
  */
 export class IsolatedExecutionSandbox {
   static async execute(image: string, argv: string[], input: string, limits: SandboxLimits = {}): Promise<SandboxResult> {
-    if (!/@sha256:[a-f0-9]{64}$/i.test(image)) throw new Error('Sandbox image must be pinned by immutable sha256 digest.');
+    if (!/^(?:[^\s@]+@)?sha256:[a-f0-9]{64}$/i.test(image)) throw new Error('Sandbox image must be pinned by immutable sha256 digest or local image ID.');
     if (!Array.isArray(argv) || argv.length === 0 || argv.some(a => typeof a !== 'string' || a.length > 4096)) throw new Error('Sandbox argv is invalid.');
     const timeoutMs = Math.min(Math.max(limits.timeoutMs ?? 15_000, 100), 120_000);
     const memoryBytes = Math.min(Math.max(limits.memoryBytes ?? 256 * 1024 * 1024, 32 * 1024 * 1024), 2 * 1024 * 1024 * 1024);
@@ -32,7 +32,7 @@ export class IsolatedExecutionSandbox {
     const pidsLimit = Math.min(Math.max(Math.floor(limits.pidsLimit ?? 64), 8), 256);
     const maxOutputBytes = Math.min(Math.max(limits.maxOutputBytes ?? 256 * 1024, 1024), 2 * 1024 * 1024);
     const name = 'solvex-sandbox-' + randomUUID();
-    const args = ['run', '--name', name, '--network=none', '--read-only', '--memory', String(memoryBytes),
+    const args = ['run', '-i', '--name', name, '--network=none', '--read-only', '--memory', String(memoryBytes),
       '--memory-swap', String(memoryBytes), '--cpus', String(cpuCount), '--pids-limit', String(pidsLimit),
       '--user', '65534:65534', '--cap-drop=ALL', '--security-opt=no-new-privileges',
       '--tmpfs', '/tmp:rw,noexec,nosuid,nodev,size=16m', '--pull=never', image, ...argv];

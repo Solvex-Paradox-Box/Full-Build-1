@@ -266,7 +266,7 @@ async function main() {
     adversarialOk
   }));
 
-  // Print precise failing DFRL identities before the separate 46-gate process starts.
+  // Print precise failing DFRL identities before the separate Stage 45 process starts.
   // This preserves actionable evidence even if a later stage exhausts memory.
   const dfrlFailures = dfrlReport.results.flatMap((r, index) => {
     const replay = dfrlReport.replays[index];
@@ -285,7 +285,7 @@ async function main() {
   });
   console.log('[DFRL-CASE-FAILURES]', JSON.stringify(dfrlFailures));
 
-  // 46-gate suite is required for ACTIVE; if unavailable, stay BLOCKED.
+  // Stage 45 readiness is required for ACTIVE; if unavailable, stay BLOCKED.
   let gatesPassed = 0;
   let gatesTotal = 0;
   let gatesFailed = 0;
@@ -293,28 +293,28 @@ async function main() {
   try {
     // Remove any checked-in or stale result first: a child crash must never
     // let this run accept gate evidence from an earlier commit or workflow.
-    const gateArtifactPath = path.join(outDir, 'system-46-gates.json');
+    const gateArtifactPath = path.join(outDir, 'stage-45-readiness.json');
     if (fs.existsSync(gateArtifactPath)) fs.unlinkSync(gateArtifactPath);
 
-    // Run the 46-gate suite in a child process. The 120-case WASM corpus creates
+    // Run Stage 45 in a child process. The 120-case WASM corpus creates
     // many solver contexts; re-running the authoritative pipeline in this same
     // process can exhaust the WASM heap (~2 GiB) after the corpus has completed.
-    // A separate process gives the gate suite a fresh WASM heap; any child failure
+    // A separate process gives the Stage 45 verifier a fresh WASM heap; any child failure
     // remains BLOCKED and is never treated as a pass.
-    cp.execFileSync(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'scripts/verify_46_gates.ts'], {
+    cp.execFileSync(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'scripts/verify_stage45.ts'], {
       stdio: 'inherit',
       timeout: 80 * 60 * 1000
     });
-    if (!fs.existsSync(gateArtifactPath)) throw new Error('Isolated 46-gate process produced no system-46-gates.json artifact');
+    if (!fs.existsSync(gateArtifactPath)) throw new Error('Isolated Stage 45 process produced no stage-45-readiness.json artifact');
     gatesReport = JSON.parse(fs.readFileSync(gateArtifactPath, 'utf8'));
     if (gatesReport.source_commit_sha !== commitSha || gatesReport.isolated_process !== true) {
-      throw new Error('Isolated 46-gate artifact provenance mismatch; activation remains BLOCKED');
+      throw new Error('Isolated Stage 45 artifact provenance mismatch; activation remains BLOCKED');
     }
-    gatesTotal = gatesReport.total_gates;
-    gatesPassed = gatesReport.gates.filter((g: any) => g.status === 'PASSED').length;
+    gatesTotal = gatesReport.gates.length + 1;
+    gatesPassed = gatesReport.gates.filter((g: any) => g.status === 'PASSED').length + (gatesReport.stage_45?.status === 'PASSED' ? 1 : 0);
     // BLOCKED and EXTERNAL_PROVIDER_REQUIRED are not passes; never exclude them.
-    gatesFailed = gatesReport.gates.filter((g: any) => g.status !== 'PASSED').length;
-    console.log('[46-GATE-DIAGNOSTICS]', JSON.stringify({
+    gatesFailed = gatesReport.gates.filter((g: any) => g.status !== 'PASSED').length + (gatesReport.stage_45?.status === 'PASSED' ? 0 : 1);
+    console.log('[STAGE-45-DIAGNOSTICS]', JSON.stringify({
       total: gatesTotal,
       passed: gatesPassed,
       notPassed: gatesFailed,
@@ -327,7 +327,7 @@ async function main() {
       }))
     }));
   } catch (e: any) {
-    console.warn('System46Gates isolated process not completed; activation remains BLOCKED:', e?.message || e);
+    console.warn('Stage 45 isolated process not completed; activation remains BLOCKED:', e?.message || e);
   }
 
   let activationAuthorization: DaisyActivationAuthorization | undefined;
@@ -357,9 +357,9 @@ async function main() {
     schema_version: '1.0.0',
     status: brainActive ? 'ACTIVE' : 'BLOCKED',
     reason: brainActive
-      ? 'Formal, adversarial, 46-gate, and signed human-root authorization evidence passed.'
+      ? 'Formal, adversarial, Stage 45, and signed human-root authorization evidence passed.'
       : activationAuthorizationValid
-        ? 'Activation blocked until formal corpus, adversarial checks, and all 46 system gates pass; no provider or blocked gate may be excluded.'
+        ? 'Activation blocked until formal corpus, adversarial checks, and all 44 checks and Stage 45 pass; no provider or blocked gate may be excluded.'
         : 'Activation blocked: fresh signed human-root authorization for this source commit and run evidence is unavailable or invalid.',
     commit_sha: commitSha,
     source_commit_sha: commitSha,
@@ -393,8 +393,8 @@ async function main() {
       replay_integrity: replayIntegrity
     },
     mandatory_gates: {
-      total: 46,
-      observed: gatesReport?.gates?.length ?? gatesTotal,
+      total: 45,
+      observed: (gatesReport?.gates?.length ?? 0) + (gatesReport?.stage_45 ? 1 : 0),
       passed: gatesPassed,
       failed: gatesReport?.failed_count ?? 0,
       blocked: gatesReport?.blocked_count ?? 0,
@@ -472,8 +472,8 @@ async function main() {
   };
   fs.writeFileSync(path.join(outDir, 'z3-120-formal-verification-summary.json'), JSON.stringify(summaryArtifact, null, 2));
 
-  if (!gatesReport || gatesTotal !== 46 || gatesReport.gates?.length !== 46 || new Set(gatesReport.gates.map((g: any) => g.gate_id)).size !== 46) {
-    console.error('[46-GATE-INVENTORY] BLOCKED: expected exactly 46 unique gate records from System46Gates; no synthetic inventory is accepted.');
+  if (!gatesReport || gatesTotal !== 45 || gatesReport.gates?.length !== 44 || new Set(gatesReport.gates.map((g: any) => g.gate_id)).size !== 44 || gatesReport.stage_45?.status !== 'PASSED') {
+    console.error('[STAGE-45-INVENTORY] BLOCKED: expected exactly 44 unique pre-production checks plus a passing Stage 45 decision; no synthetic inventory is accepted.');
   }
   const executionGatesPath = path.join(outDir, 'execution-gates.json');
   if (!fs.existsSync(executionGatesPath)) {
@@ -525,7 +525,7 @@ async function main() {
     'formal-aggregation.json',
     'z3-120-formal-verification-summary.json',
     'daisy-brain-activation-gate.json',
-    'system-46-gates.json',
+    'stage-45-readiness.json',
     'execution-gates.json',
     path.basename(outPath)
   ];
@@ -555,7 +555,7 @@ async function main() {
   const formalOk = passed120 && adversarialOk && fs.existsSync(gatePath);
   if (formalOk && !brainActive) {
     console.log(
-      'FORMAL_OK_ACTIVATION_BLOCKED: 120/adversarial passed; activation remains BLOCKED until all 46 gates PASS (including external providers when required).'
+      'FORMAL_OK_ACTIVATION_BLOCKED: 120/adversarial passed; activation remains BLOCKED until all 44 pre-production checks and Stage 45 pass.'
     );
   }
   process.exit(formalOk ? 0 : 1);

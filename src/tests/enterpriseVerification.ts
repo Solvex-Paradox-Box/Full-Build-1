@@ -26,19 +26,20 @@ export interface EnterpriseTestResult {
   error?: string;
 }
 
-export async function runEnterpriseVerification() {
+export async function runEnterpriseVerification(options: { phase?: 'all' | 'pre-production' | 'post-production' } = {}) {
   const testResults: EnterpriseTestResult[] = [];
-  const testQueue: Array<() => Promise<void>> = [];
+  const testQueue: Array<{ test_number: number; run: () => Promise<void> }> = [];
   let testCounter = 1;
 
   function runTest(name: string, category: string, fn: () => void | Promise<void>) {
-    testQueue.push(async () => {
+    const testNumber = testCounter++;
+    testQueue.push({ test_number: testNumber, run: async () => {
       const start = Date.now();
       try {
         await fn();
         const dur = Date.now() - start;
         testResults.push({
-          test_number: testCounter++,
+          test_number: testNumber,
           name,
           category,
           passed: true,
@@ -48,7 +49,7 @@ export async function runEnterpriseVerification() {
       } catch (e: any) {
         const dur = Date.now() - start;
         testResults.push({
-          test_number: testCounter++,
+          test_number: testNumber,
           name,
           category,
           passed: false,
@@ -57,7 +58,7 @@ export async function runEnterpriseVerification() {
           error: e.message || String(e)
         });
       }
-    });
+    }});
   }
 
   // 1. Authentication & RBAC Test
@@ -269,8 +270,12 @@ export async function runEnterpriseVerification() {
     if (result.stage_traces.length !== 21 || result.total_stages !== 21) {
       throw new Error(`Expected 21 stage traces, got ${result.stage_traces.length}`);
     }
-    if (result.overall_success || !result.stage_traces.some(stage => stage.status === 'BLOCKED')) {
-      throw new Error('Pipeline did not preserve fail-closed status for unavailable controls');
+    const oracleStage = result.stage_traces.find(stage => stage.stage === 14);
+    const localStages = result.stage_traces.filter(stage => stage.stage !== 14);
+    if (result.overall_success || result.completed_stages !== 20 ||
+        oracleStage?.status !== 'EXTERNAL_PROVIDER_REQUIRED' ||
+        localStages.length !== 20 || !localStages.every(stage => stage.status === 'PASSED')) {
+      throw new Error('Pipeline must complete all 20 local stages, defer only the live oracle provider check, and never claim full production success');
     }
   });
 
@@ -499,10 +504,15 @@ export async function runEnterpriseVerification() {
     }
   });
 
-  // Execute all queued tests sequentially
-  for (const testFn of testQueue) {
-    await testFn();
-  }
+  // Pre-production executes INV-01..INV-29. INV-30 is deliberately isolated
+  // for the deployed-environment closure phase. The all option is retained for
+  // diagnostic runs only; it is never used by the Stage 45 runner.
+  const phase = options.phase ?? 'all';
+  const selectedTests = testQueue.filter(test =>
+    phase === 'pre-production' ? test.test_number <= 29 :
+    phase === 'post-production' ? test.test_number === 30 : true
+  );
+  for (const test of selectedTests) await test.run();
 
   const totalTests = testResults.length;
   const passedTests = testResults.filter(t => t.passed).length;
@@ -512,6 +522,7 @@ export async function runEnterpriseVerification() {
     allPassed,
     totalTests,
     passedTests,
+    phase: phase,
     results: testResults
   };
 }

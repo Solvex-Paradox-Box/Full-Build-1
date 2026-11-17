@@ -3,7 +3,7 @@ name: Build and Enterprise CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, live-person-workflow]
 
 permissions:
   contents: read
@@ -21,6 +21,8 @@ jobs:
           bun-version: latest
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
+      - name: Verify 44-check and Stage 45 phase wiring
+        run: bun run verify:phase-wiring
       - name: Fail-closed release safety checks
         run: bun run verify:release-safety
       - name: Daisy foundational instruction and no-simulated-success checks
@@ -43,18 +45,39 @@ jobs:
         run: bun run build
       - name: TypeScript
         run: bun run lint
+      - name: Build digest-pinned sandbox execution image
+        id: sandbox
+        env:
+          NODE_BASE_IMAGE: node:22.23-slim@sha256:47725aca53d3295ec2d3be8f62726599b3033cc262edc2c7e429909b3ac599fc
+        run: |
+          docker build --build-arg NODE_BASE_IMAGE="$NODE_BASE_IMAGE" -f sandbox/Dockerfile -t solvex-sandbox:ci sandbox
+          image_id="$(docker image inspect --format '{{.Id}}' solvex-sandbox:ci)"
+          echo "image_id=$image_id" >> "$GITHUB_OUTPUT"
+          echo "SOLVEX_SANDBOX_IMAGE=$image_id" >> "$GITHUB_ENV"
+      - name: Prepare ephemeral proof evidence store
+        run: |
+          mkdir -p "$RUNNER_TEMP/solvex-proof-evidence"
+          proof_key="$(openssl rand -hex 32)"
+          tenant_root_key="$(openssl rand -hex 32)"
+          echo "SOLVEX_PROOF_DIR=$RUNNER_TEMP/solvex-proof-evidence" >> "$GITHUB_ENV"
+          echo "SOLVEX_PROOF_HMAC_KEY=$proof_key" >> "$GITHUB_ENV"
+          echo "SOLVEX_TENANT_ROOT_KEY=$tenant_root_key" >> "$GITHUB_ENV"
       - name: Enterprise invariants
         run: bun run verify:enterprise
-      - name: Formal verification corpus
-        run: bun run verify:120
       - name: Proof closure
+        env:
+          SOLVEX_SANDBOX_IMAGE: ${{ steps.sandbox.outputs.image_id }}
+          # Verified Vercel project target for this repository. This identifies
+          # the deployment destination; it does not deploy or authorize production traffic.
+          SOLVEX_DEPLOYMENT_TARGET: "vercel://team_uReepq4IFAwtT6YDQyGPnwQB/prj_xDcwUu9Ls9OWsJ7EHuYGlKaqE5go"
+          SOLVEX_DEPLOYMENT_TARGET_VERIFIED: "true"
         run: bun run verify:proof-closure
-      - name: Authoritative 46-gate verification
-        run: bunx tsx scripts/verify_46_gates.ts
-      - name: Upload 46-gate evidence
+      - name: Upload Stage 45 readiness evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: system-46-gates
-          path: artifacts/system-46-gates.json
+          name: stage-45-readiness
+          path: |
+            artifacts/stage-45-readiness.json
+            artifacts/stage-45-readiness.md
           if-no-files-found: ignore

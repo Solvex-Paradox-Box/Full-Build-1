@@ -6,7 +6,7 @@ const artifactNames = [
   'formal-aggregation.json',
   'z3-120-formal-verification-summary.json',
   'daisy-brain-activation-gate.json',
-  'system-46-gates.json',
+  'stage-45-readiness.json',
   'execution-gates.json'
 ];
 const before = new Map<string, number>();
@@ -23,8 +23,8 @@ const commands = [
   'verify:paypal',
   'verify:nodes',
   'verify:enterprise',
-  'verify:authoritative',
   'verify:120',
+  'verify:authoritative',
   'verify:ci',
   'verify:67-gates',
   'test:solution-pipeline'

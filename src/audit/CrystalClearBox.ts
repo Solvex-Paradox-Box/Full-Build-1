@@ -1,4 +1,7 @@
-import { ProofBundleEntity, computeSha256 } from '../database/DatabaseSchema';
+import { createHash } from 'node:crypto';
+import { ProofBundleEntity } from '../database/DatabaseSchema';
+
+const computeSha256 = (data: string): string => createHash('sha256').update(data, 'utf8').digest('hex');
 
 export interface CustomerEvidenceView {
   proof_id: string;

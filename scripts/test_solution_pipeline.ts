@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import { SolutionPipeline } from '../src/solutions/SolutionPipeline';
 
 async function main() {
+  // This test specifically verifies the missing-sandbox fail-closed path.
+  // The CI readiness run builds and supplies a pinned sandbox image separately.
+  const configuredSandboxImage = process.env.SOLVEX_SANDBOX_IMAGE;
+  delete process.env.SOLVEX_SANDBOX_IMAGE;
   const pipeline = SolutionPipeline.getInstance();
 
   const sentinel = await pipeline.runPipeline('DH-P-001', '/* FAIL_STAGE_9 */ return false;');
@@ -26,6 +30,7 @@ async function main() {
   assert.ok(normal.stage_traces.slice(9).every(stage => stage.status === 'BLOCKED'),
     'no downstream solver, ledger, checkpoint, or publication side effects may run after the cleanroom blocker');
   assert.equal(normal.overall_success, false, 'unavailable cleanroom must keep closure fail-closed');
+  if (configuredSandboxImage) process.env.SOLVEX_SANDBOX_IMAGE = configuredSandboxImage;
   console.log(JSON.stringify({
     test: 'solution-pipeline-execution',
     sentinel_circuit_breaker: 'PASS',

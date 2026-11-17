@@ -6,7 +6,7 @@ export interface MemorySafetySnapshot {
   rssBytes: number; heapUsedBytes: number; heapLimitBytes: number;
   externalBytes: number; arrayBuffersBytes: number; maxRssBytes: number;
   cgroupCurrentBytes?: number; cgroupPeakBytes?: number; cgroupLimitBytes?: number;
-  cgroupOomEvents?: number; withinLimit: boolean; instrumentationAvailable: boolean;
+  cgroupOomEvents?: number; cgroupTelemetryAvailable: boolean; measurementScope: 'CGROUP_V2' | 'PROCESS'; withinLimit: boolean; instrumentationAvailable: boolean;
 }
 async function readNumber(path: string): Promise<number | undefined> {
   try { const value = (await readFile(path, 'utf8')).trim(); if (value === 'max') return undefined; const n = Number(value); return Number.isFinite(n) ? n : undefined; } catch { return undefined; }
@@ -28,13 +28,17 @@ export class MemorySafetyInstrumentation {
     const oomEvents = oom === undefined || oomKill === undefined ? undefined : oom + oomKill;
     const cgroupLimitBytes = limit;
     const measured = Math.max(m.rss, current ?? 0);
-    const instrumentationAvailable = current !== undefined && peak !== undefined && limit !== undefined &&
+    const cgroupTelemetryAvailable = current !== undefined && peak !== undefined && limit !== undefined &&
       oom !== undefined && oomKill !== undefined;
+    const processTelemetryAvailable = Number.isFinite(m.rss) && Number.isFinite(r.maxRSS) &&
+      Number.isFinite(h.heap_size_limit) && h.heap_size_limit > 0;
+    const instrumentationAvailable = cgroupTelemetryAvailable || processTelemetryAvailable;
     const withinLimit = instrumentationAvailable && measured <= limitBytes &&
-      cgroupLimitBytes! <= limitBytes && oomEvents === 0;
+      (!cgroupTelemetryAvailable || (cgroupLimitBytes! <= limitBytes && oomEvents === 0));
     return { rssBytes: m.rss, heapUsedBytes: m.heapUsed, heapLimitBytes: h.heap_size_limit,
       externalBytes: m.external, arrayBuffersBytes: m.arrayBuffers, maxRssBytes: r.maxRSS * 1024,
       cgroupCurrentBytes: current, cgroupPeakBytes: peak, cgroupLimitBytes, cgroupOomEvents: oomEvents,
+      cgroupTelemetryAvailable, measurementScope: cgroupTelemetryAvailable ? 'CGROUP_V2' : 'PROCESS',
       withinLimit, instrumentationAvailable };
   }
 }
